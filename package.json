@@ -1,0 +1,36 @@
+{
+  "name": "lsm",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --debug",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "livestock",
+    "management",
+    "accounting"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "LSM Electron Application - Livestock Management and Basic Accounting",
+  "build": {
+    "appId": "com.lsm.app",
+    "productName": "LSM",
+    "directories": {
+      "output": "build"
+    }
+  },
+  "devDependencies": {
+    "electron": "^36.2.1"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "bootstrap": "^5.3.6",
+    "electron-builder": "^26.0.12",
+    "sqlite3": "^5.1.7"
+  }
+}

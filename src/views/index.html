@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>LSM - Livestock Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link href="../styles/styles.css" rel="stylesheet">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+          <div class="position-sticky">
+            <!-- Profil Seçici -->
+            <div class="profile-selector py-2">
+              <div class="d-flex justify-content-between align-items-center px-2">
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle me-1"></i><span id="selectedProfileName">Profil Seçin</span>
+                  </button>
+                  <ul class="dropdown-menu" id="profileList" aria-labelledby="profileDropdown">
+                    <!-- Profiller JavaScript ile doldurulacak -->
+                  </ul>
+                </div>
+                <div class="btn-group-sm">
+                  <button class="btn btn-success" id="addProfileBtn" title="Yeni Profil Ekle">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <button class="btn btn-danger" id="deleteProfileBtn" title="Profili Sil">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <hr class="my-2">
+            
+            <!-- Sidebar Menü -->
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link active" href="#dashboard">
+                  <i class="fas fa-tachometer-alt me-2"></i>
+                  Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#livestock">
+                  <i class="fas fa-horse me-2"></i>
+                  Livestock Management
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#accounting">
+                  <i class="fas fa-file-invoice-dollar me-2"></i>
+                  Accounting
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#settings">
+                  <i class="fas fa-cog me-2"></i>
+                  Settings
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#profile">
+                  <i class="fas fa-user me-2"></i>
+                  Profile
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+        
+        <!-- Ana İçerik -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+          <div id="content-area">
+            <!-- Başlangıçta Dashboard gösterilecek -->
+            <div id="dashboard-view" class="view active-view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Dashboard</h1>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-4">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Toplam Hayvan</h5>
+                      <p class="card-text display-4" id="totalAnimals">0</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Bu Ayki Gelir</h5>
+                      <p class="card-text display-4" id="monthlyIncome">₺0</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Bu Ayki Gider</h5>
+                      <p class="card-text display-4" id="monthlyExpense">₺0</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Livestock Management View -->
+            <div id="livestock-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Livestock Management</h1>
+              </div>
+              <p>Hayvan yönetimi içeriği burada olacak.</p>
+            </div>
+            
+            <!-- Accounting View -->
+            <div id="accounting-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Accounting</h1>
+              </div>
+              <p>Muhasebe içeriği burada olacak.</p>
+            </div>
+            
+            <!-- Settings View -->
+            <div id="settings-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Settings</h1>
+              </div>
+              <p>Ayarlar içeriği burada olacak.</p>
+            </div>
+            
+            <!-- Profile View -->
+            <div id="profile-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Profile</h1>
+              </div>
+              <p>Profil içeriği burada olacak.</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    
+    <!-- Profil Ekleme Modalı -->
+    <div class="modal fade" id="addProfileModal" tabindex="-1" aria-labelledby="addProfileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addProfileModalLabel">Yeni Profil Ekle</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="profileForm">
+              <div class="mb-3">
+                <label for="profileName" class="form-label">Profil Adı</label>
+                <input type="text" class="form-control" id="profileName" required>
+              </div>
+              <div class="mb-3">
+                <label for="profileDescription" class="form-label">Açıklama</label>
+                <textarea class="form-control" id="profileDescription" rows="3"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+            <button type="button" class="btn btn-primary" id="saveProfileBtn">Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Profil Silme Onay Modalı -->
+    <div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-labelledby="deleteProfileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteProfileModalLabel">Profili Sil</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Bu profili silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm ilişkili veriler silinecektir.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteProfileBtn">Sil</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ana JS -->
+    <script src="../renderer.js"></script>
+  </body>
+</html> 
