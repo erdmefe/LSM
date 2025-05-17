@@ -25,7 +25,23 @@ window.lsmAPI = {
     delete: (id) => ipcRenderer.invoke('delete-profile', id),
     setActive: (id) => ipcRenderer.invoke('set-active-profile', id),
     getActive: () => ipcRenderer.invoke('get-active-profile')
-  }
+  },
   
-  // Diğer API modülleri buraya eklenebilir
+  // Hayvan İşlemleri
+  animals: {
+    getAll: (profileId) => ipcRenderer.invoke('get-all-animals', profileId),
+    getById: (animalId) => ipcRenderer.invoke('get-animal', animalId),
+    create: (animalData) => ipcRenderer.invoke('create-animal', animalData),
+    update: (animalData) => ipcRenderer.invoke('update-animal', animalData),
+    delete: (animalId) => ipcRenderer.invoke('delete-animal', animalId),
+    getStats: (profileId) => ipcRenderer.invoke('get-animal-stats', profileId),
+    
+    // Hayvan Türleri
+    types: {
+      getAll: (profileId) => ipcRenderer.invoke('get-animal-types', profileId),
+      create: (typeData) => ipcRenderer.invoke('create-animal-type', typeData),
+      update: (typeData) => ipcRenderer.invoke('update-animal-type', typeData),
+      delete: (typeId) => ipcRenderer.invoke('delete-animal-type', typeId)
+    }
+  }
 }; 
