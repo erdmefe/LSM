@@ -1,6 +1,6 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
-const database = require('./database/database');
+const database = require('./database');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -10,14 +10,17 @@ let activeProfileId = null;
 function createWindow() {
   // Create the browser window
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 720,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  // Menü çubuğunu kaldır
+  Menu.setApplicationMenu(null);
 
   // Load the index.html file
   mainWindow.loadFile(path.join(__dirname, 'views/index.html'));
@@ -34,11 +37,11 @@ function createWindow() {
 // Initialize the database before creating the window
 app.whenReady().then(async () => {
   try {
-    await database.initDatabase();
+    await database.initialize();
     console.log('Database initialized successfully');
     
     // Get the first profile or create default if none exist
-    const profiles = await database.getAllProfiles();
+    const profiles = await database.profiles.getAll();
     if (profiles && profiles.length > 0) {
       activeProfileId = profiles[0].id;
     }
@@ -68,7 +71,7 @@ app.on('window-all-closed', function () {
 // IPC Handlers for profile operations
 ipcMain.handle('get-all-profiles', async () => {
   try {
-    return await database.getAllProfiles();
+    return await database.profiles.getAll();
   } catch (error) {
     console.error('Error fetching profiles:', error);
     return [];
@@ -77,7 +80,7 @@ ipcMain.handle('get-all-profiles', async () => {
 
 ipcMain.handle('get-profile', async (_, id) => {
   try {
-    return await database.getProfileById(id);
+    return await database.profiles.getById(id);
   } catch (error) {
     console.error(`Error fetching profile ${id}:`, error);
     return null;
@@ -86,7 +89,7 @@ ipcMain.handle('get-profile', async (_, id) => {
 
 ipcMain.handle('create-profile', async (_, { name, description }) => {
   try {
-    const id = await database.createProfile(name, description);
+    const id = await database.profiles.create(name, description);
     return { success: true, id };
   } catch (error) {
     console.error('Error creating profile:', error);
@@ -96,7 +99,7 @@ ipcMain.handle('create-profile', async (_, { name, description }) => {
 
 ipcMain.handle('update-profile', async (_, { id, name, description }) => {
   try {
-    await database.updateProfile(id, name, description);
+    await database.profiles.update(id, name, description);
     return { success: true };
   } catch (error) {
     console.error(`Error updating profile ${id}:`, error);
@@ -106,11 +109,21 @@ ipcMain.handle('update-profile', async (_, { id, name, description }) => {
 
 ipcMain.handle('delete-profile', async (_, id) => {
   try {
-    await database.deleteProfile(id);
+    await database.profiles.delete(id);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting profile ${id}:`, error);
     return { success: false, error: error.message };
+  }
+});
+
+// Uygulama kapatılırken veritabanı bağlantısını kapat
+app.on('will-quit', async () => {
+  try {
+    await database.close();
+    console.log('Database connection closed');
+  } catch (error) {
+    console.error('Failed to close database:', error);
   }
 });
 

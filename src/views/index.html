@@ -47,11 +47,56 @@
                   Dashboard
                 </a>
               </li>
+              <!-- Livestock Management menüsü ve dropdown -->
               <li class="nav-item">
-                <a class="nav-link" href="#livestock">
+                <a class="nav-link dropdown-toggle" href="#" id="livestockDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#livestockSubmenu" aria-expanded="false" aria-controls="livestockSubmenu">
                   <i class="fas fa-horse me-2"></i>
                   Livestock Management
                 </a>
+                <div class="collapse" id="livestockSubmenu">
+                  <ul class="nav flex-column sub-menu ms-3">
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#add-animal">
+                        <i class="fas fa-plus-circle me-2"></i>Hayvan Ekle
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#animal-list">
+                        <i class="fas fa-list me-2"></i>Hayvan Listesi
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#health-records">
+                        <i class="fas fa-heartbeat me-2"></i>Sağlık Bilgileri
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#pregnancy">
+                        <i class="fas fa-baby me-2"></i>Gebelik Durumu
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#milk-records">
+                        <i class="fas fa-tint me-2"></i>Sağım Verileri
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#feed-ration">
+                        <i class="fas fa-utensils me-2"></i>Yem Rasyon
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#feed-stock">
+                        <i class="fas fa-warehouse me-2"></i>Yem Stok
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link small py-1" href="#quarantine">
+                        <i class="fas fa-head-side-mask me-2"></i>Karantina
+                      </a>
+                    </li>
+                  </ul>
+                </div>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#accounting">
@@ -111,7 +156,74 @@
               </div>
             </div>
             
-            <!-- Livestock Management View -->
+            <!-- Livestock Management Views -->
+            <!-- Dashboard Livestock - Artık kullanılmıyor -->
+            
+            <!-- Hayvan Ekle -->
+            <div id="add-animal-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Hayvan Ekle</h1>
+              </div>
+              <p>Yeni hayvan ekleme formu burada olacak.</p>
+            </div>
+            
+            <!-- Hayvan Listesi -->
+            <div id="animal-list-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Hayvan Listesi</h1>
+              </div>
+              <p>Tüm hayvanların listesi burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Sağlık Bilgileri -->
+            <div id="health-records-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Sağlık Bilgileri</h1>
+              </div>
+              <p>Hayvanların sağlık kayıtları burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Gebelik Durumu -->
+            <div id="pregnancy-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Gebelik Durumu</h1>
+              </div>
+              <p>Gebelik takip bilgileri burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Sağım Verileri -->
+            <div id="milk-records-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Sağım Verileri</h1>
+              </div>
+              <p>Sağım kayıtları burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Yem Rasyon -->
+            <div id="feed-ration-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Yem Rasyon</h1>
+              </div>
+              <p>Yem rasyon bilgileri burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Yem Stok -->
+            <div id="feed-stock-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Yem Stok</h1>
+              </div>
+              <p>Yem stok durumu burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Karantina -->
+            <div id="quarantine-view" class="view">
+              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Karantina</h1>
+              </div>
+              <p>Karantina bilgileri burada görüntülenecek.</p>
+            </div>
+            
+            <!-- Livestock Management View (Eski, Kaldırılabilir) -->
             <div id="livestock-view" class="view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Livestock Management</h1>

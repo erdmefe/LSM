@@ -12,8 +12,10 @@ const saveProfileBtn = document.getElementById('saveProfileBtn');
 const confirmDeleteProfileBtn = document.getElementById('confirmDeleteProfileBtn');
 const profileName = document.getElementById('profileName');
 const profileDescription = document.getElementById('profileDescription');
-const navLinks = document.querySelectorAll('.nav-link');
+const navLinks = document.querySelectorAll('.nav-link:not(.dropdown-toggle)');
 const viewDivs = document.querySelectorAll('.view');
+const livestockDropdown = document.getElementById('livestockDropdown');
+const livestockSubmenu = document.getElementById('livestockSubmenu');
 
 // Bootstrap Modal nesneleri
 let addProfileModal;
@@ -110,27 +112,122 @@ function setupEventListeners() {
     }
   });
   
-  // Navigasyon linkleri
+  // Ana navigasyon linkleri
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       
-      // Aktif sınıfını tüm linklerden kaldır
-      navLinks.forEach(l => l.classList.remove('active'));
-      
-      // Tıklanan linke aktif sınıfını ekle
-      link.classList.add('active');
-      
-      // İlgili görünümü göster
-      const targetId = link.getAttribute('href').substring(1) + '-view';
-      viewDivs.forEach(div => {
-        div.classList.remove('active-view');
-        if (div.id === targetId) {
-          div.classList.add('active-view');
+      // Tıklanan link dropdown içinde değilse ana menü öğelerini pasif yap
+      if (!link.closest('.collapse')) {
+        // Aktif sınıfını tüm ana menü linklerinden kaldır
+        document.querySelectorAll('.nav > .nav-item > .nav-link').forEach(l => {
+          l.classList.remove('active');
+        });
+        
+        // Dropdown menüyü kapat ve pasif yap
+        if (livestockDropdown) {
+          livestockDropdown.classList.remove('active');
+          
+          // Bootstrap kollapsa erişip, gerekirse kapat
+          const bsCollapse = bootstrap.Collapse.getInstance(document.getElementById('livestockSubmenu'));
+          if (bsCollapse) {
+            bsCollapse.hide();
+          }
         }
-      });
+        
+        // Alt menülerdeki tüm aktif sınıflarını kaldır
+        document.querySelectorAll('.sub-menu .nav-link').forEach(l => {
+          l.classList.remove('active');
+        });
+        
+        // Tıklanan linke aktif sınıfını ekle
+        link.classList.add('active');
+      }
+      
+      // Görünüm değiştir
+      showView(link.getAttribute('href'));
     });
   });
+  
+  // Alt menü linkleri (dropdown içindekiler)
+  document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      // Alt menü içindeki tüm linklerden aktif sınıfını kaldır
+      document.querySelectorAll('.sub-menu .nav-link').forEach(l => {
+        l.classList.remove('active');
+      });
+      
+      // Tıklanan alt menü linkine aktif sınıfını ekle
+      link.classList.add('active');
+      
+      // Diğer ana menü öğelerini pasif yap
+      document.querySelectorAll('.nav > .nav-item > .nav-link:not(.dropdown-toggle)').forEach(l => {
+        l.classList.remove('active');
+      });
+      
+      // Üst dropdown menüsünün aktif olduğunu belirt
+      if (livestockDropdown) {
+        livestockDropdown.classList.add('active');
+      }
+      
+      // Görünüm değiştir
+      showView(link.getAttribute('href'));
+    });
+  });
+  
+  // Dropdown menü kontrolü
+  if (livestockDropdown) {
+    livestockDropdown.addEventListener('click', (e) => {
+      // Sadece dropdown'ı açıp kapatma işlemi yapılır, alt menü seçilmez
+      const bsCollapse = bootstrap.Collapse.getInstance(livestockSubmenu) || 
+                          new bootstrap.Collapse(livestockSubmenu, { toggle: false });
+      
+      // Dropdown toggle işlemi
+      if (livestockSubmenu.classList.contains('show')) {
+        bsCollapse.hide();
+      } else {
+        bsCollapse.show();
+        
+        // Dropdown açılınca diğer menülerin active durumunu temizle
+        // Ama alt menü seçimini yapma
+        document.querySelectorAll('.nav > .nav-item > .nav-link:not(.dropdown-toggle)').forEach(l => {
+          l.classList.remove('active');
+        });
+        
+        // Dropdown'ı active yap
+        livestockDropdown.classList.add('active');
+      }
+    });
+    
+    // Dropdown kapandığında
+    livestockSubmenu.addEventListener('hidden.bs.collapse', () => {
+      // Eğer alt menüde hala aktif bir öğe varsa, dropdown'ı aktif tut
+      if (!document.querySelector('.sub-menu .nav-link.active')) {
+        livestockDropdown.classList.remove('active');
+      }
+    });
+  }
+}
+
+// Belirtilen görünümü göster
+function showView(hash) {
+  // # işaretini kaldır
+  const viewId = hash.substring(1) + '-view';
+  
+  // Tüm görünümleri gizle
+  viewDivs.forEach(div => {
+    div.classList.remove('active-view');
+  });
+  
+  // İstenen görünümü göster
+  const targetView = document.getElementById(viewId);
+  if (targetView) {
+    targetView.classList.add('active-view');
+  } else {
+    console.warn(`"${viewId}" ID'li görünüm bulunamadı`);
+  }
 }
 
 // Profilleri yükle
