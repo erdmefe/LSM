@@ -43,5 +43,32 @@ window.lsmAPI = {
       update: (typeData) => ipcRenderer.invoke('update-animal-type', typeData),
       delete: (typeId) => ipcRenderer.invoke('delete-animal-type', typeId)
     }
+  },
+  
+  // Sağlık Kayıtları İşlemleri
+  health: {
+    getAll: (profileId) => ipcRenderer.invoke('get-all-health-records', profileId),
+    create: (recordData) => ipcRenderer.invoke('create-health-record', recordData),
+    update: (recordData) => ipcRenderer.invoke('update-health-record', recordData),
+    delete: (recordId) => ipcRenderer.invoke('delete-health-record', recordId)
+  },
+  
+  // Sağım Kayıtları İşlemleri
+  milk: {
+    getAll: (profileId, options) => ipcRenderer.invoke('get-all-milk-records', profileId, options),
+    create: (recordData) => ipcRenderer.invoke('create-milk-record', recordData),
+    update: (recordData) => ipcRenderer.invoke('update-milk-record', recordData),
+    delete: (recordId) => ipcRenderer.invoke('delete-milk-record', recordId),
+    getStats: (profileId, options) => ipcRenderer.invoke('get-milk-stats', profileId, options)
+  },
+  
+  // Üreme/Gebelik Kayıtları İşlemleri
+  breeding: {
+    getAll: (profileId, options) => ipcRenderer.invoke('get-all-breeding-records', profileId, options),
+    create: (recordData) => ipcRenderer.invoke('create-breeding-record', recordData),
+    update: (recordData) => ipcRenderer.invoke('update-breeding-record', recordData),
+    delete: (recordId) => ipcRenderer.invoke('delete-breeding-record', recordId),
+    getStats: (profileId, options) => ipcRenderer.invoke('get-breeding-stats', profileId, options),
+    getUpcomingBirths: (profileId, daysThreshold) => ipcRenderer.invoke('get-upcoming-births', profileId, daysThreshold)
   }
 }; 

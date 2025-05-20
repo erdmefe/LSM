@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const database = require('./database/database');
 const animalModel = require('./database/animalModel');
+const healthRecordModel = require('./database/healthRecordModel');
+const milkRecordModel = require('./database/milkRecordModel');
+const breedingRecordModel = require('./database/breedingRecordModel');
+const profileModel = require('./database/profileModel');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -26,7 +30,7 @@ function createWindow() {
   // Load the index.html file
   mainWindow.loadFile(path.join(__dirname, 'views/index.html'));
 
-  // Open DevTools in development mode
+  // DevTools'u aç
   // mainWindow.webContents.openDevTools();
 
   // Handle window closed event
@@ -240,4 +244,271 @@ ipcMain.handle('set-active-profile', async (_, id) => {
 
 ipcMain.handle('get-active-profile', async () => {
   return activeProfileId;
+});
+
+// Sağlık Kayıtları API
+ipcMain.handle('get-all-health-records', async (_, profileId) => {
+  try {
+    console.log('Main process: get-all-health-records called with profileId:', profileId);
+    
+    if (!profileId || profileId <= 0) {
+      console.error('Main process: Invalid profile ID:', profileId);
+      return [];
+    }
+    
+    // Test için profildeki hayvanları sorgula
+    const animals = await database.all("SELECT id FROM animals WHERE profile_id = ?", [profileId]);
+    console.log(`Main process: Found ${animals.length} animals for profile ${profileId}`);
+    
+    const records = await healthRecordModel.getHealthRecordsByProfile(profileId);
+    console.log('Main process: Found records count:', records.length);
+    if (records.length > 0) {
+      console.log('Main process: Sample record:', records[0]);
+    }
+    return records;
+  } catch (error) {
+    console.error('Error fetching health records:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-health-record', async (_, recordData) => {
+  try {
+    console.log('Main process: create-health-record called with data:', JSON.stringify(recordData, null, 2));
+    
+    // Validate the input data
+    if (!recordData.animal_id) {
+      console.error('Main process: Missing animal_id in health record data');
+      return { success: false, error: 'Hayvan seçilmedi.' };
+    }
+    
+    if (!recordData.date && !recordData.record_date) {
+      console.error('Main process: Missing date in health record data');
+      return { success: false, error: 'İşlem tarihi girilmedi.' };
+    }
+    
+    // Ensure we use record_date as expected by the database model
+    if (recordData.date && !recordData.record_date) {
+      recordData.record_date = recordData.date;
+    }
+    
+    const id = await healthRecordModel.createHealthRecord(recordData);
+    console.log('Main process: Successfully created health record with ID:', id);
+    return { success: true, id };
+  } catch (error) {
+    console.error('Main process: Error creating health record:', error);
+    
+    // Return a more descriptive error message
+    let errorMessage = 'Sağlık kaydı oluşturulurken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('update-health-record', async (_, recordData) => {
+  try {
+    await healthRecordModel.updateHealthRecord(recordData);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error updating health record ${recordData.id}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-health-record', async (_, recordId) => {
+  try {
+    await healthRecordModel.deleteHealthRecord(recordId);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting health record ${recordId}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Sağım Kayıtları API
+ipcMain.handle('get-all-milk-records', async (_, profileId) => {
+  try {
+    console.log('Main process: get-all-milk-records called with profileId:', profileId);
+    
+    if (!profileId || profileId <= 0) {
+      console.error('Main process: Invalid profile ID:', profileId);
+      return [];
+    }
+    
+    // Profildeki sağılabilir hayvanları kontrol et
+    const milkingAnimals = await database.all(
+      "SELECT id FROM animals WHERE profile_id = ? AND (status = 'Sağmal' OR status = 'Gebe') AND status != 'Kuruda'", 
+      [profileId]
+    );
+    console.log(`Main process: Found ${milkingAnimals.length} milkable animals for profile ${profileId}`);
+    
+    const records = await milkRecordModel.getMilkRecordsByProfile(profileId);
+    console.log('Main process: Found milk records count:', records.length);
+    if (records.length > 0) {
+      console.log('Main process: Sample milk record:', records[0]);
+    }
+    return records;
+  } catch (error) {
+    console.error('Error fetching milk records:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-milk-record', async (_, recordData) => {
+  try {
+    const id = await milkRecordModel.createMilkRecord(recordData);
+    return { success: true, id };
+  } catch (error) {
+    console.error('Error creating milk record:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('update-milk-record', async (_, recordData) => {
+  try {
+    await milkRecordModel.updateMilkRecord(recordData);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error updating milk record ${recordData.id}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-milk-record', async (_, recordId) => {
+  try {
+    await milkRecordModel.deleteMilkRecord(recordId);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting milk record ${recordId}:`, error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-milk-stats', async (_, profileId, options) => {
+  try {
+    const stats = await milkRecordModel.getMilkStats(profileId, options);
+    return stats;
+  } catch (error) {
+    console.error(`Error getting milk stats for profile ${profileId}:`, error);
+    return null;
+  }
+});
+
+// Üreme/Gebelik Kayıtları API
+ipcMain.handle('get-all-breeding-records', async (_, profileId, options) => {
+  try {
+    console.log('Main process: get-all-breeding-records called with profileId:', profileId);
+    
+    if (!profileId || profileId <= 0) {
+      console.error('Main process: Invalid profile ID:', profileId);
+      return [];
+    }
+    
+    // Profildeki hayvanları kontrol et
+    const animals = await database.all("SELECT id, gender FROM animals WHERE profile_id = ?", [profileId]);
+    const femaleAnimals = animals.filter(a => a.gender === 'Dişi');
+    console.log(`Main process: Found ${animals.length} animals (${femaleAnimals.length} female) for profile ${profileId}`);
+    
+    const records = await breedingRecordModel.getBreedingRecordsByProfile(profileId, options);
+    console.log('Main process: Found breeding records count:', records.length);
+    if (records.length > 0) {
+      console.log('Main process: Sample breeding record:', records[0]);
+    }
+    return records;
+  } catch (error) {
+    console.error('Error fetching breeding records:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-breeding-record', async (_, recordData) => {
+  try {
+    console.log('Main process: create-breeding-record called with data:', JSON.stringify(recordData, null, 2));
+    
+    // Validate the input data
+    if (!recordData.animal_id) {
+      console.error('Main process: Missing animal_id in breeding record data');
+      return { success: false, error: 'Hayvan seçilmedi.' };
+    }
+    
+    if (!recordData.breeding_date) {
+      console.error('Main process: Missing breeding_date in breeding record data');
+      return { success: false, error: 'Çiftleşme tarihi girilmedi.' };
+    }
+
+    const id = await breedingRecordModel.createBreedingRecord(recordData);
+    console.log('Main process: Successfully created breeding record with ID:', id);
+    return { success: true, id };
+  } catch (error) {
+    console.error('Main process: Error creating breeding record:', error);
+    
+    // Return a more descriptive error message
+    let errorMessage = 'Üreme/gebelik kaydı oluşturulurken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('update-breeding-record', async (_, recordData) => {
+  try {
+    console.log('Main process: update-breeding-record called with data:', JSON.stringify(recordData, null, 2));
+    await breedingRecordModel.updateBreedingRecord(recordData);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error updating breeding record ${recordData.id}:`, error);
+    let errorMessage = 'Üreme/gebelik kaydı güncellenirken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('delete-breeding-record', async (_, recordId) => {
+  try {
+    console.log('Main process: delete-breeding-record called with ID:', recordId);
+    await breedingRecordModel.deleteBreedingRecord(recordId);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting breeding record ${recordId}:`, error);
+    let errorMessage = 'Üreme/gebelik kaydı silinirken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('get-breeding-stats', async (_, profileId, options) => {
+  try {
+    const stats = await breedingRecordModel.getBreedingStats(profileId, options);
+    return stats;
+  } catch (error) {
+    console.error(`Error getting breeding stats for profile ${profileId}:`, error);
+    return null;
+  }
+});
+
+ipcMain.handle('get-upcoming-births', async (_, profileId, daysThreshold) => {
+  try {
+    const upcomingBirths = await breedingRecordModel.getUpcomingBirths(profileId, daysThreshold);
+    return upcomingBirths;
+  } catch (error) {
+    console.error(`Error getting upcoming births for profile ${profileId}:`, error);
+    return [];
+  }
 }); 

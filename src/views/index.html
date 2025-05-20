@@ -7,6 +7,103 @@
     <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
     <link href="../styles/styles.css" rel="stylesheet">
+    <style>
+      /* Tüm scroll barları gizle ama scroll özelliğini koru */
+      ::-webkit-scrollbar {
+        display: none;
+      }
+      
+      /* Firefox için */
+      * {
+        scrollbar-width: none;
+      }
+      
+      /* IE ve Edge için */
+      * {
+        -ms-overflow-style: none;
+      }
+
+      /* Sidebar genişliğini sabitle */
+      #sidebar {
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
+      }
+
+      /* Modal'ı sidebar dışındaki alana göre ortala */
+      @media (min-width: 768px) {
+        #addAnimalModal .modal-dialog {
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%) !important;
+          margin: 0 !important;
+          max-width: 700px;
+          width: 100%;
+        }
+      }
+
+      /* Ana içerik alanını ortala */
+      @media (min-width: 768px) {
+        main.col-md-9 {
+          margin-left: 210px !important;
+          width: calc(100% - 210px) !important;
+          max-width: calc(100% - 210px) !important;
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+
+        .table-responsive {
+          margin: 0 auto;
+          max-width: 100%;
+        }
+      }
+      @media (max-width: 767.98px) {
+        #addAnimalModal .modal-dialog {
+          position: static !important;
+          left: auto !important;
+          top: auto !important;
+          transform: none !important;
+          margin: 1rem auto !important;
+          max-width: 95vw !important;
+          width: 100% !important;
+        }
+      }
+      
+      /* Mor arka plan rengi (Satıldı durumu için) */
+      .bg-purple {
+        background-color: #6f42c1;
+        color: white;
+      }
+      
+      /* Dashboard card styles */
+      .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+      }
+      .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+      }
+      .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+      }
+      .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+      }
+      .border-left-danger {
+        border-left: 4px solid #e74a3b !important;
+      }
+      
+      .font-weight-bold {
+        font-weight: 600 !important;
+      }
+      
+      /* Chart container for responsive charts */
+      .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+      }
+    </style>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
   </head>
   <body>
@@ -55,11 +152,6 @@
                 </a>
                 <div class="collapse" id="livestockSubmenu">
                   <ul class="nav flex-column sub-menu ms-3">
-                    <li class="nav-item">
-                      <a class="nav-link small py-1" href="#add-animal">
-                        <i class="fas fa-plus-circle me-2"></i>Hayvan Ekle
-                      </a>
-                    </li>
                     <li class="nav-item">
                       <a class="nav-link small py-1" href="#animal-list">
                         <i class="fas fa-list me-2"></i>Hayvan Listesi
@@ -127,29 +219,131 @@
             <div id="dashboard-view" class="view active-view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Dashboard</h1>
+                <button class="btn btn-sm btn-outline-secondary" id="refreshDashboardBtn" title="Yenile">
+                  <i class="fas fa-sync-alt"></i> Yenile
+                </button>
               </div>
-              <div class="row">
-                <div class="col-md-4 mb-4">
-                  <div class="card">
+              
+              <!-- Özet Kartlar -->
+              <div class="row mb-4">
+                <div class="col-md-3 mb-4">
+                  <div class="card h-100 border-left-primary">
                     <div class="card-body">
                       <h5 class="card-title">Toplam Hayvan</h5>
                       <p class="card-text display-4" id="totalAnimals">0</p>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                  <div class="card">
+                <div class="col-md-3 mb-4">
+                  <div class="card h-100 border-left-success">
                     <div class="card-body">
-                      <h5 class="card-title">Bu Ayki Gelir</h5>
-                      <p class="card-text display-4" id="monthlyIncome">₺0</p>
+                      <h5 class="card-title">Toplam Süt Üretimi</h5>
+                      <p class="card-text display-4" id="totalMilkProduction">0 L</p>
+                      <small class="text-muted">Son 30 gün</small>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                  <div class="card">
+                <div class="col-md-3 mb-4">
+                  <div class="card h-100 border-left-info">
                     <div class="card-body">
-                      <h5 class="card-title">Bu Ayki Gider</h5>
-                      <p class="card-text display-4" id="monthlyExpense">₺0</p>
+                      <h5 class="card-title">Yaklaşan Doğumlar</h5>
+                      <p class="card-text display-4" id="upcomingBirthCount">0</p>
+                      <small class="text-muted">Gelecek 30 gün</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                  <div class="card h-100 border-left-warning">
+                    <div class="card-body">
+                      <h5 class="card-title">Sağlık Kayıtları</h5>
+                      <p class="card-text display-4" id="recentHealthCount">0</p>
+                      <small class="text-muted">Son 30 gün</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grafikler ve Tablolar -->
+              <div class="row">
+                <!-- Hayvan Dağılımı -->
+                <div class="col-lg-6 mb-4">
+                  <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                      <h6 class="m-0 font-weight-bold">Hayvan Durumu Dağılımı</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="animalStatusChart"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Süt Üretimi Grafiği -->
+                <div class="col-lg-6 mb-4">
+                  <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                      <h6 class="m-0 font-weight-bold">Süt Üretimi (Son 30 Gün)</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="milkProductionChart"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <!-- Yaklaşan Doğumlar Tablosu -->
+                <div class="col-lg-6 mb-4">
+                  <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                      <h6 class="m-0 font-weight-bold">Yaklaşan Doğumlar</h6>
+                      <a href="#pregnancy" class="btn btn-sm btn-primary">Tümünü Gör</a>
+                    </div>
+                    <div class="card-body">
+                      <ul class="list-group list-group-flush" id="dashboardUpcomingBirths">
+                        <li class="list-group-item text-center">
+                          <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                          </div>
+                          <span class="ms-2">Yaklaşan doğumlar yükleniyor...</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Son Sağlık Kayıtları -->
+                <div class="col-lg-6 mb-4">
+                  <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                      <h6 class="m-0 font-weight-bold">Son Sağlık Kayıtları</h6>
+                      <a href="#health-records" class="btn btn-sm btn-primary">Tümünü Gör</a>
+                    </div>
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-sm">
+                          <thead>
+                            <tr>
+                              <th>Hayvan</th>
+                              <th>Tarih</th>
+                              <th>İşlem</th>
+                            </tr>
+                          </thead>
+                          <tbody id="dashboardHealthRecords">
+                            <tr>
+                              <td colspan="3" class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                  <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                                <span class="ms-2">Sağlık kayıtları yükleniyor...</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -159,104 +353,17 @@
             <!-- Livestock Management Views -->
             <!-- Dashboard Livestock - Artık kullanılmıyor -->
             
-            <!-- Hayvan Ekle -->
-            <div id="add-animal-view" class="view">
-              <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1>Hayvan Ekle</h1>
-              </div>
-              <div class="row">
-                <div class="col-md-8 mx-auto">
-                  <div class="card">
-                    <div class="card-body">
-                      <form id="addAnimalForm">
-                        <div class="row mb-3">
-                          <div class="col-md-6">
-                            <label for="animalTagId" class="form-label">Küpe No / Tanımlayıcı</label>
-                            <input type="text" class="form-control" id="animalTagId" placeholder="Küpe numarası veya benzersiz tanımlayıcı" required>
-                          </div>
-                          <div class="col-md-6">
-                            <label for="animalType" class="form-label">Hayvan Türü</label>
-                            <select class="form-select" id="animalType" required>
-                              <option value="" selected disabled>Tür seçin</option>
-                              <!-- Hayvan türleri JavaScript ile doldurulacak -->
-                            </select>
-                            <div class="d-flex align-items-center mt-2">
-                              <button type="button" class="btn btn-sm btn-outline-secondary" id="addTypeBtn">
-                                <i class="fas fa-plus"></i> Yeni Tür Ekle
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                          <div class="col-md-6">
-                            <label for="animalName" class="form-label">İsim</label>
-                            <input type="text" class="form-control" id="animalName" placeholder="Varsa hayvanın ismi">
-                          </div>
-                          <div class="col-md-6">
-                            <label for="animalGender" class="form-label">Cinsiyet</label>
-                            <select class="form-select" id="animalGender" required>
-                              <option value="" selected disabled>Cinsiyet seçin</option>
-                              <option value="Erkek">Erkek</option>
-                              <option value="Dişi">Dişi</option>
-                            </select>
-                          </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                          <div class="col-md-6">
-                            <label for="animalBirthDate" class="form-label">Doğum Tarihi</label>
-                            <input type="date" class="form-control" id="animalBirthDate">
-                          </div>
-                          <div class="col-md-6">
-                            <label for="animalAcquisitionDate" class="form-label">Alım Tarihi</label>
-                            <input type="date" class="form-control" id="animalAcquisitionDate" required>
-                          </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                          <div class="col-md-6">
-                            <label for="animalAcquisitionCost" class="form-label">Alım Maliyeti (₺)</label>
-                            <input type="number" class="form-control" id="animalAcquisitionCost" step="0.01" min="0">
-                          </div>
-                          <div class="col-md-6">
-                            <label for="animalStatus" class="form-label">Durum</label>
-                            <select class="form-select" id="animalStatus" required>
-                              <option value="Aktif" selected>Aktif</option>
-                              <option value="Satıldı">Satıldı</option>
-                              <option value="Öldü">Öldü</option>
-                              <option value="Karantina">Karantina</option>
-                            </select>
-                          </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                          <label for="animalNotes" class="form-label">Notlar</label>
-                          <textarea class="form-control" id="animalNotes" rows="3" placeholder="Hayvan hakkında ek bilgiler, özel durumlar, vs."></textarea>
-                        </div>
-                        
-                        <div class="text-end">
-                          <button type="reset" class="btn btn-secondary me-2">Temizle</button>
-                          <button type="submit" class="btn btn-primary" id="saveAnimalBtn">Kaydet</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
             <!-- Hayvan Listesi -->
             <div id="animal-list-view" class="view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Hayvan Listesi</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
-                  <button type="button" class="btn btn-sm btn-outline-primary me-2" id="refreshAnimalListBtn">
-                    <i class="fas fa-sync-alt me-1"></i> Yenile
+                  <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="refreshAnimalListBtn" title="Listeyi Yenile">
+                    <i class="fas fa-sync-alt"></i> Yenile
                   </button>
-                  <a href="#add-animal" class="btn btn-sm btn-primary">
+                  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAnimalModal">
                     <i class="fas fa-plus me-1"></i> Yeni Hayvan
-                  </a>
+                  </button>                  
                 </div>
               </div>
               
@@ -281,10 +388,16 @@
                         <div class="col-md-3">
                           <select class="form-select form-select-sm" id="animalStatusFilter">
                             <option value="" selected>Tüm Durumlar</option>
-                            <option value="Aktif">Aktif</option>
-                            <option value="Satıldı">Satıldı</option>
+                            <option value="Sağmal">Sağmal</option>
+                            <option value="Gebe">Gebe</option>
+                            <option value="Kuruda">Kuruda</option>
+                            <option value="Yeni Doğum">Yeni Doğum</option>
+                            <option value="Buzağı">Buzağı</option>
+                            <option value="Düve">Düve</option>
+                            <option value="Boşta">Boşta</option>
+                            <option value="Hasta">Hasta</option>
                             <option value="Öldü">Öldü</option>
-                            <option value="Karantina">Karantina</option>
+                            <option value="Satıldı">Satıldı</option>
                           </select>
                         </div>
                         <div class="col-md-3">
@@ -373,24 +486,338 @@
             <div id="health-records-view" class="view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Sağlık Bilgileri</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                  <button class="btn btn-sm btn-outline-secondary me-2" id="refreshHealthListBtn" title="Listeyi Yenile">
+                    <i class="fas fa-sync-alt"></i> Yenile
+                  </button>
+                  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addHealthModal">
+                    <i class="fas fa-plus me-1"></i> Sağlık Girdisi Ekle
+                  </button>
+                </div>
               </div>
-              <p>Hayvanların sağlık kayıtları burada görüntülenecek.</p>
+              <!-- Filtre ve Arama -->
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="healthSearchInput" placeholder="Arama (hayvan adı, küpe no, sağlık türü...)">
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <select class="form-select form-select-sm" id="healthAnimalFilter">
+                            <option value="" selected>Tüm Hayvanlar</option>
+                            <!-- JS ile doldurulacak -->
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <select class="form-select form-select-sm" id="healthTypeFilter">
+                            <option value="" selected>Tüm Sağlık Türleri</option>
+                            <!-- JS ile doldurulacak -->
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Sonuç özeti -->
+              <div class="d-flex justify-content-between mb-2">
+                <div>
+                  <span id="healthCount">0</span> sağlık kaydı listeleniyor
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" id="exportHealthCsvBtn" title="CSV olarak dışa aktar">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" id="printHealthListBtn" title="Listeyi yazdır">
+                    <i class="fas fa-print"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- Sağlık Tablosu -->
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Hayvan</th>
+                      <th>Küpe No</th>
+                      <th>Sağlık Türü</th>
+                      <th>Tarih</th>
+                      <th>Açıklama</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody id="healthTableBody">
+                    <tr>
+                      <td colspan="6" class="text-center">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                          <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <span class="ms-2">Sağlık kayıtları yükleniyor...</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Sayfalama -->
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex align-items-center">
+                  <span class="me-2">Sayfa başına:</span>
+                  <select class="form-select form-select-sm" style="width: auto;" id="healthPageSizeSelect">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="0">Tümü</option>
+                  </select>
+                </div>
+                <nav aria-label="Sayfalama">
+                  <ul class="pagination pagination-sm" id="healthPagination">
+                    <!-- JS ile doldurulacak -->
+                  </ul>
+                </nav>
+              </div>
             </div>
             
             <!-- Gebelik Durumu -->
             <div id="pregnancy-view" class="view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Gebelik Durumu</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                  <button class="btn btn-sm btn-outline-secondary me-2" id="refreshBreedingListBtn" title="Listeyi Yenile">
+                    <i class="fas fa-sync-alt"></i> Yenile
+                  </button>
+                  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBreedingModal">
+                    <i class="fas fa-plus me-1"></i> Üreme Kaydı Ekle
+                  </button>
+                </div>
               </div>
-              <p>Gebelik takip bilgileri burada görüntülenecek.</p>
+              
+              <!-- Yaklaşan Doğumlar -->
+              <div class="card mb-3">
+                <div class="card-header bg-warning text-dark">
+                  <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Yaklaşan Doğumlar</h5>
+                </div>
+                <div class="card-body p-0">
+                  <ul class="list-group list-group-flush" id="upcomingBirthsList">
+                    <li class="list-group-item text-center">
+                      <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                      </div>
+                      <span class="ms-2">Yaklaşan doğumlar yükleniyor...</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <!-- Filtre ve Arama -->
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="breedingSearchInput" placeholder="Arama (hayvan adı, küpe no...)">
+                      </div>
+                    </div>
+                    <div class="col-md-8">
+                      <div class="row g-2">
+                        <div class="col-md-3">
+                          <select class="form-select form-select-sm" id="breedingAnimalFilter">
+                            <option value="" selected>Tüm Hayvanlar</option>
+                            <!-- JS ile doldurulacak -->
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <select class="form-select form-select-sm" id="breedingStatusFilter">
+                            <option value="" selected>Tüm Durumlar</option>
+                            <option value="pending">Bekleyen</option>
+                            <option value="completed">Tamamlanan</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label for="breedingDateStart" class="form-label">Başlangıç</label>
+                          <input type="date" class="form-control form-control-sm" id="breedingDateStart">
+                        </div>
+                        <div class="col-md-3">
+                          <label for="breedingDateEnd" class="form-label">Bitiş</label>
+                          <input type="date" class="form-control form-control-sm" id="breedingDateEnd">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Sonuç özeti -->
+              <div class="d-flex justify-content-between mb-2">
+                <div>
+                  <span id="breedingCount">0</span> üreme/gebelik kaydı listeleniyor
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" id="exportBreedingCsvBtn" title="CSV olarak dışa aktar">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" id="printBreedingListBtn" title="Listeyi yazdır">
+                    <i class="fas fa-print"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Üreme/Gebelik Kayıtları Tablosu -->
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Hayvan</th>
+                      <th>Eş</th>
+                      <th>Çiftleşme Tarihi</th>
+                      <th>Tahmini Doğum</th>
+                      <th>Gerçek Doğum</th>
+                      <th>Yavru Sayısı</th>
+                      <th>Durum</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody id="breedingTableBody">
+                    <tr>
+                      <td colspan="8" class="text-center">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                          <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <span class="ms-2">Üreme/gebelik kayıtları yükleniyor...</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Sayfalama -->
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex align-items-center">
+                  <span class="me-2">Sayfa başına:</span>
+                  <select class="form-select form-select-sm" style="width: auto;" id="breedingPageSizeSelect">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="0">Tümü</option>
+                  </select>
+                </div>
+                <nav aria-label="Sayfalama">
+                  <ul class="pagination pagination-sm" id="breedingPagination">
+                    <!-- JS ile doldurulacak -->
+                  </ul>
+                </nav>
+              </div>
             </div>
             
             <!-- Sağım Verileri -->
             <div id="milk-records-view" class="view">
               <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1>Sağım Verileri</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                  <button class="btn btn-sm btn-outline-secondary me-2" id="refreshMilkListBtn" title="Listeyi Yenile">
+                    <i class="fas fa-sync-alt"></i> Yenile
+                  </button>
+                  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addMilkModal">
+                    <i class="fas fa-plus me-1"></i> Sağım Kaydı Ekle
+                  </button>
+                </div>
               </div>
-              <p>Sağım kayıtları burada görüntülenecek.</p>
+              <!-- Filtre ve Arama -->
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="milkSearchInput" placeholder="Arama (hayvan adı, küpe no...)">
+                      </div>
+                    </div>
+                    <div class="col-md-8">
+                      <div class="row g-2">
+                        <div class="col-md-4">
+                          <select class="form-select form-select-sm" id="milkAnimalFilter">
+                            <option value="" selected>Tüm Hayvanlar</option>
+                            <!-- JS ile doldurulacak -->
+                          </select>
+                        </div>
+                        <div class="col-md-4">
+                          <label for="milkDateStart" class="form-label">Başlangıç Tarihi</label>
+                          <input type="date" class="form-control form-control-sm" id="milkDateStart">
+                        </div>
+                        <div class="col-md-4">
+                          <label for="milkDateEnd" class="form-label">Bitiş Tarihi</label>
+                          <input type="date" class="form-control form-control-sm" id="milkDateEnd">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Sonuç özeti -->
+              <div class="d-flex justify-content-between mb-2">
+                <div>
+                  <span id="milkCount">0</span> sağım kaydı listeleniyor | Toplam: <strong><span id="milkTotalLiters">0</span> kg</strong>
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" id="exportMilkCsvBtn" title="CSV olarak dışa aktar">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" id="printMilkListBtn" title="Listeyi yazdır">
+                    <i class="fas fa-print"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- Sağım Tablosu -->
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>Hayvan</th>
+                      <th>Küpe No</th>
+                      <th>Sağım Tarihi</th>
+                      <th>Sağım Saati</th>
+                      <th>Miktar (kg)</th>
+                      <th>Kalite</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody id="milkTableBody">
+                    <tr>
+                      <td colspan="7" class="text-center">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                          <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <span class="ms-2">Sağım kayıtları yükleniyor...</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Sayfalama -->
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="d-flex align-items-center">
+                  <span class="me-2">Sayfa başına:</span>
+                  <select class="form-select form-select-sm" style="width: auto;" id="milkPageSizeSelect">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="0">Tümü</option>
+                  </select>
+                </div>
+                <nav aria-label="Sayfalama">
+                  <ul class="pagination pagination-sm" id="milkPagination">
+                    <!-- JS ile doldurulacak -->
+                  </ul>
+                </nav>
+              </div>
             </div>
             
             <!-- Yem Rasyon -->
@@ -501,8 +928,8 @@
     </div>
     
     <!-- Hayvan Türü Ekleme Modalı -->
-    <div class="modal fade" id="addTypeModal" tabindex="-1" aria-labelledby="addTypeModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+    <div class="modal fade" id="addTypeModal" tabindex="-1" aria-labelledby="addTypeModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addTypeModalLabel">Yeni Hayvan Türü Ekle</h5>
@@ -616,9 +1043,277 @@
       Hayvan başarıyla eklendi!
     </div>
     
+    <div id="typeSuccessMessage" class="alert alert-success d-none" role="alert">
+      Tür başarıyla eklendi!
+    </div>
+    
+    <!-- Hayvan Ekleme Modalı -->
+    <div class="modal fade" id="addAnimalModal" tabindex="-1" aria-labelledby="addAnimalModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addAnimalModalLabel">Yeni Hayvan Ekle</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+          </div>
+          <div class="modal-body">
+            <form id="modalAddAnimalForm">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="modalAnimalTagId" class="form-label">Küpe No / Tanımlayıcı</label>
+                  <input type="text" class="form-control" id="modalAnimalTagId" placeholder="Küpe numarası veya benzersiz tanımlayıcı" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="modalAnimalType" class="form-label">Hayvan Türü</label>
+                  <select class="form-select" id="modalAnimalType" required>
+                    <option value="" selected disabled>Tür seçin</option>
+                    <!-- Hayvan türleri JavaScript ile doldurulacak -->
+                  </select>
+                  <div class="mt-2">
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control" id="inlineTypeName" placeholder="Yeni tür adı">
+                      <button type="button" class="btn btn-outline-secondary" id="inlineAddTypeBtn">
+                        <i class="fas fa-plus"></i> Ekle
+                      </button>
+                    </div>
+                    <small class="text-muted">Yeni tür eklemek için yukarıdaki alanı kullanın</small>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="modalAnimalName" class="form-label">İsim</label>
+                  <input type="text" class="form-control" id="modalAnimalName" placeholder="Varsa hayvanın ismi">
+                </div>
+                <div class="col-md-6">
+                  <label for="modalAnimalGender" class="form-label">Cinsiyet</label>
+                  <select class="form-select" id="modalAnimalGender" required>
+                    <option value="" selected disabled>Cinsiyet seçin</option>
+                    <option value="Erkek">Erkek</option>
+                    <option value="Dişi">Dişi</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="modalAnimalBirthDate" class="form-label">Doğum Tarihi</label>
+                  <input type="date" class="form-control" id="modalAnimalBirthDate">
+                </div>
+                <div class="col-md-6">
+                  <label for="modalAnimalAcquisitionDate" class="form-label">Alım Tarihi</label>
+                  <input type="date" class="form-control" id="modalAnimalAcquisitionDate" required>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="modalAnimalAcquisitionCost" class="form-label">Alım Maliyeti (₺)</label>
+                  <input type="number" class="form-control" id="modalAnimalAcquisitionCost" step="0.01" min="0">
+                </div>
+                <div class="col-md-6">
+                  <label for="modalAnimalStatus" class="form-label">Durum</label>
+                  <select class="form-select" id="modalAnimalStatus" required>
+                    <option value="Boşta" selected>Boşta</option>
+                    <option value="Sağmal">Sağmal</option>
+                    <option value="Gebe">Gebe</option>
+                    <option value="Kuruda">Kuruda</option>
+                    <option value="Yeni Doğum">Yeni Doğum</option>
+                    <option value="Buzağı">Buzağı</option>
+                    <option value="Düve">Düve</option>
+                    <option value="Hasta">Hasta</option>
+                    <option value="Öldü">Öldü</option>
+                    <option value="Satıldı">Satıldı</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="modalAnimalNotes" class="form-label">Notlar</label>
+                <textarea class="form-control" id="modalAnimalNotes" rows="3" placeholder="Hayvan hakkında ek bilgiler, özel durumlar, vs."></textarea>
+              </div>
+              
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="reset" class="btn btn-secondary me-2">Temizle</button>
+                <button type="submit" class="btn btn-primary" id="modalSaveAnimalBtn">Kaydet</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sağlık Girdisi Ekle Modalı -->
+    <div class="modal fade" id="addHealthModal" tabindex="-1" aria-labelledby="addHealthModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addHealthModalLabel">Sağlık Girdisi Ekle</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+          </div>
+          <div class="modal-body">
+            <form id="addHealthForm">
+              <div class="mb-3">
+                <label for="healthAnimalSelect" class="form-label">Hayvan</label>
+                <select class="form-select" id="healthAnimalSelect" required>
+                  <option value="" selected disabled>Hayvan seçin</option>
+                  <!-- Hayvanlar JS ile doldurulacak -->
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="healthTypeSelect" class="form-label">Sağlık Türü</label>
+                <select class="form-select" id="healthTypeSelect" required>
+                  <option value="" selected disabled>Tür seçin</option>
+                  <option value="Aşılama">Aşılama</option>
+                  <option value="Tedavi">Tedavi</option>
+                  <option value="Kontrol">Kontrol</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="healthDate" class="form-label">Tarih</label>
+                <input type="date" class="form-control" id="healthDate" required>
+              </div>
+              <div class="mb-3">
+                <label for="healthNote" class="form-label">Açıklama / Not</label>
+                <textarea class="form-control" id="healthNote" rows="3" placeholder="Açıklama veya not..."></textarea>
+              </div>
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="reset" class="btn btn-secondary me-2">Temizle</button>
+                <button type="submit" class="btn btn-primary" id="saveHealthBtn">Kaydet</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sağım Kaydı Ekle Modalı -->
+    <div class="modal fade" id="addMilkModal" tabindex="-1" aria-labelledby="addMilkModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addMilkModalLabel">Sağım Kaydı Ekle</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+          </div>
+          <div class="modal-body">
+            <form id="addMilkForm">
+              <div class="mb-3">
+                <label for="milkAnimalSelect" class="form-label">Hayvan</label>
+                <select class="form-select" id="milkAnimalSelect" required>
+                  <option value="" selected disabled>Hayvan seçin</option>
+                  <!-- Hayvanlar JS ile doldurulacak (Sadece Sağmal olanlar) -->
+                </select>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="milkDate" class="form-label">Sağım Tarihi</label>
+                  <input type="date" class="form-control" id="milkDate" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="milkTime" class="form-label">Sağım Saati</label>
+                  <input type="time" class="form-control" id="milkTime" required>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="milkAmount" class="form-label">Miktar (kg)</label>
+                  <input type="number" class="form-control" id="milkAmount" min="0" step="0.1" required>
+                </div>
+                <div class="col-md-6">
+                  <label for="milkQuality" class="form-label">Kalite</label>
+                  <select class="form-select" id="milkQuality" required>
+                    <option value="A">A - Yüksek Kalite</option>
+                    <option value="B" selected>B - Normal</option>
+                    <option value="C">C - Düşük Kalite</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="milkNote" class="form-label">Not (İsteğe Bağlı)</label>
+                <textarea class="form-control" id="milkNote" rows="2" placeholder="Ek bilgi veya not..."></textarea>
+              </div>
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="reset" class="btn btn-secondary me-2">Temizle</button>
+                <button type="submit" class="btn btn-primary" id="saveMilkBtn">Kaydet</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Üreme Kaydı Ekle Modalı -->
+    <div class="modal fade" id="addBreedingModal" tabindex="-1" aria-labelledby="addBreedingModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addBreedingModalLabel">Üreme Kaydı Ekle</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+          </div>
+          <div class="modal-body">
+            <form id="addBreedingForm">
+              <div class="mb-3">
+                <label for="breedingAnimalSelect" class="form-label">Ana Hayvan</label>
+                <select class="form-select" id="breedingAnimalSelect" required>
+                  <option value="" selected disabled>Hayvan seçin</option>
+                  <!-- Hayvanlar JS ile doldurulacak (sadece dişiler) -->
+                </select>
+                <small class="text-muted">Sadece dişi hayvanlar listelenir</small>
+              </div>
+              <div class="mb-3">
+                <label for="breedingPartnerSelect" class="form-label">Eş Hayvan</label>
+                <select class="form-select" id="breedingPartnerSelect">
+                  <option value="" selected>Eş seçin (opsiyonel)</option>
+                  <!-- Hayvanlar JS ile doldurulacak (sadece erkekler) -->
+                </select>
+                <small class="text-muted">Sadece erkek hayvanlar listelenir</small>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="breedingDate" class="form-label">Çiftleşme Tarihi</label>
+                  <input type="date" class="form-control" id="breedingDate" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="breedingExpectedDate" class="form-label">Tahmini Doğum</label>
+                  <input type="date" class="form-control" id="breedingExpectedDate">
+                  <small class="text-muted">Opsiyonel</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="breedingActualDate" class="form-label">Gerçek Doğum</label>
+                  <input type="date" class="form-control" id="breedingActualDate">
+                  <small class="text-muted">Doğum olduysa</small>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="breedingOffspringCount" class="form-label">Yavru Sayısı</label>
+                <input type="number" class="form-control" id="breedingOffspringCount" min="0" step="1">
+                <small class="text-muted">Doğum olduysa</small>
+              </div>
+              <div class="mb-3">
+                <label for="breedingNote" class="form-label">Notlar</label>
+                <textarea class="form-control" id="breedingNote" rows="3" placeholder="Üreme kaydı hakkında ek bilgiler, özel durumlar, vs."></textarea>
+              </div>
+              <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="reset" class="btn btn-secondary me-2">Temizle</button>
+                <button type="submit" class="btn btn-primary" id="saveBreedingBtn">Kaydet</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- Bootstrap JS -->
     <script src="../../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Ana JS -->
     <script src="../renderer.js"></script>
+    
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </body>
 </html> 

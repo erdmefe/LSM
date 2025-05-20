@@ -212,6 +212,18 @@ class Database {
         FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE
       )`);
 
+      // Sağım Kayıtları Tablosu
+      await this.run(`CREATE TABLE IF NOT EXISTS milk_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        animal_id INTEGER,
+        milk_date DATE,
+        milk_time TIME,
+        amount REAL,
+        quality TEXT,
+        note TEXT,
+        FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE
+      )`);
+
       // Üreme Kayıtları Tablosu
       await this.run(`CREATE TABLE IF NOT EXISTS breeding_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -262,6 +274,7 @@ class Database {
       await this.run('CREATE INDEX IF NOT EXISTS idx_animals_profile_id ON animals(profile_id)');
       await this.run('CREATE INDEX IF NOT EXISTS idx_animals_type_id ON animals(type_id)');
       await this.run('CREATE INDEX IF NOT EXISTS idx_health_records_animal_id ON health_records(animal_id)');
+      await this.run('CREATE INDEX IF NOT EXISTS idx_milk_records_animal_id ON milk_records(animal_id)');
       await this.run('CREATE INDEX IF NOT EXISTS idx_breeding_records_animal_id ON breeding_records(animal_id)');
       await this.run('CREATE INDEX IF NOT EXISTS idx_transactions_profile_id ON transactions(profile_id)');
 
