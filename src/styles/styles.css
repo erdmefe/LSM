@@ -25,6 +25,9 @@ body {
   height: 100vh;
   background-color: #343a40 !important;
   color: #fff;
+  width: fit-content;  
+  max-width: 210px;  
+  min-width: 210px; 
 }
 
 .sidebar .position-sticky {
@@ -34,6 +37,9 @@ body {
   padding-top: 0.5rem;
   overflow-x: hidden;
   overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+}
+.sidebar .position-sticky::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .sidebar .nav-link {
@@ -129,11 +135,6 @@ h1 {
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
 .card-title {
@@ -262,3 +263,17 @@ li:last-child {
 .dropdown-toggle:not(.collapsed) .fa-caret-down {
   transform: rotate(180deg);
 } 
+
+#animalSuccessMessage {
+  position: fixed;
+  top: 20px;
+  left: calc(50% + 105px); /* 210px / 2 */
+  transform: translateX(-50%);
+  max-width: 90vw;
+  width: auto;
+  z-index: 1050;
+  padding: 12px 20px;
+  font-weight: 500;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  transition: opacity 0.3s ease;
+}

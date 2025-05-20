@@ -389,11 +389,31 @@ function setupEventListeners() {
         const result = await window.lsmAPI.animals.create(animalData);
         
         if (result.success) {
-          alert('Hayvan başarıyla eklendi!');
+          const successMsg = document.getElementById('animalSuccessMessage');
+          if (successMsg) {
+            successMsg.classList.remove('d-none');
+            setTimeout(() => {
+              successMsg.classList.add('d-none');
+            }, 3000);
+          } else {
+            // Alternatif olarak alert kullan ama focus sorunu olmasın diye setTimeout ile
+            setTimeout(() => {
+              alert('Hayvan başarıyla eklendi!');
+            }, 0);
+          }
+        
           // Formu temizle
           addAnimalForm.reset();
-          // Hayvan listesi görünümüne git
-          document.querySelector('.nav-link[href="#animal-list"]').click();
+        
+          // Görünüm değiştir ve odakla
+          document.querySelector('.nav-link[href="#add-animal"]').click();
+        
+          // Giriş alanlarına focus ver (örnek olarak hayvan arama kutusu)
+          setTimeout(() => {
+            if (animalTagId) {
+              animalTagId.focus();
+            }
+          }, 100);
         } else {
           alert('Hayvan eklenirken bir hata oluştu: ' + result.error);
         }
