@@ -45,6 +45,20 @@ window.lsmAPI = {
     }
   },
   
+  // Rasyon İşlemleri
+  rations: {
+    getAll: (profileId) => ipcRenderer.invoke('get-all-rations', profileId),
+    getById: (rationId) => ipcRenderer.invoke('get-ration', rationId),
+    create: (rationData) => ipcRenderer.invoke('create-ration', rationData),
+    update: (rationData) => ipcRenderer.invoke('update-ration', rationData),
+    delete: (rationId) => ipcRenderer.invoke('delete-ration', rationId),
+    getStats: (profileId) => ipcRenderer.invoke('get-ration-stats', profileId)
+  },
+  feedIngredientTypes: {
+    create: (data) => ipcRenderer.invoke('create-feed-ingredient-type', data),
+    getAllByProfile: (profileId) => ipcRenderer.invoke('get-feed-ingredient-types-by-profile', profileId)
+  },
+  
   // Sağlık Kayıtları İşlemleri
   health: {
     getAll: (profileId) => ipcRenderer.invoke('get-all-health-records', profileId),

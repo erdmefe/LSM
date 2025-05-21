@@ -203,53 +203,206 @@ let loadBreedingRecords;
 let loadBreedingAnimals;
 let loadUpcomingBirths;
 
+// Yem Rasyon DOM referansları
+const refreshRationListBtn = document.getElementById('refreshRationListBtn');
+const rationSearchInput = document.getElementById('rationSearchInput');
+const rationAnimalTypeFilter = document.getElementById('rationAnimalTypeFilter');
+const rationStatusFilter = document.getElementById('rationStatusFilter');
+const rationTableBody = document.getElementById('rationTableBody');
+const rationCount = document.getElementById('rationCount');
+const rationPageSizeSelect = document.getElementById('rationPageSizeSelect');
+const rationPagination = document.getElementById('rationPagination');
+const exportRationCsvBtn = document.getElementById('exportRationCsvBtn');
+const printRationListBtn = document.getElementById('printRationListBtn');
+
+
+
+// Rasyon kategori sayaçları
+const dairyRationCount = document.getElementById('dairyRationCount');
+const dryRationCount = document.getElementById('dryRationCount');
+const calfRationCount = document.getElementById('calfRationCount');
+const otherRationCount = document.getElementById('otherRationCount');
+
+// Rasyon form alanları
+const rationName = document.getElementById('rationName');
+const animalGroup = document.getElementById('animalGroup');
+const rationStatus = document.getElementById('rationStatus');
+const rationDescription = document.getElementById('rationDescription');
+const addRationForm = document.getElementById('addRationForm');
+const saveRationBtn = document.getElementById('saveRationBtn');
+
+// Rasyon bileşen form alanları
+const ingredientName = document.getElementById('ingredientName');
+const ingredientAmount = document.getElementById('ingredientAmount');
+const ingredientCost = document.getElementById('ingredientCost');
+const ingredientProtein = document.getElementById('ingredientProtein');
+const ingredientEnergy = document.getElementById('ingredientEnergy');
+const addIngredientBtn = document.getElementById('addIngredientBtn');
+const ingredientsTableBody = document.getElementById('ingredientsTableBody');
+
+// Rasyon toplam değerleri
+const totalWeight = document.getElementById('totalWeight');
+const totalCost = document.getElementById('totalCost');
+const totalProtein = document.getElementById('totalProtein');
+const totalEnergy = document.getElementById('totalEnergy');
+
+// Yeni bileşen ekleme formu
+const newIngredientName = document.getElementById('newIngredientName');
+const newIngredientCost = document.getElementById('newIngredientCost');
+const newIngredientProtein = document.getElementById('newIngredientProtein');
+const newIngredientEnergy = document.getElementById('newIngredientEnergy');
+const newIngredientNotes = document.getElementById('newIngredientNotes');
+const saveIngredientBtn = document.getElementById('saveIngredientBtn');
+
+// Canlı toplam gösterge alanları (HTML'de eklendiğini varsayıyoruz)
+const liveTotalProteinEl = document.getElementById('liveTotalProtein');
+const liveTotalEnergyEl = document.getElementById('liveTotalEnergy');
+
+// Modal nesneleri
+let addRationModal;
+let addIngredientModal;
+
+// Rasyon verileri
+let allRations = [];
+let filteredRations = [];
+let rationCurrentPage = 1;
+let rationPageSize = 25;
+
+// Geçerli rasyon bileşenleri
+let currentIngredients = [];
+let feedIngredientTypesCache = []; // Yem malzemesi türleri için önbellek
+
+// Ingredient sınıfı (Bileşen)
+class Ingredient {
+  constructor(name, amount, cost, protein, energy, dryMatter = 100) {
+    this.name = name;
+    this.amount = parseFloat(amount) || 0;
+    this.cost = parseFloat(cost) || 0;
+    this.protein = parseFloat(protein) || 0;
+    this.energy = parseFloat(energy) || 0;
+    this.dryMatter = parseFloat(dryMatter) || 100;  // Kuru madde oranı (%) - varsayılan 100%
+  }
+
+  getTotalCost() {
+    return this.amount * this.cost;
+  }
+  
+  // Protein miktarı (kg)
+  getProteinAmount() {
+    return this.amount * (this.protein / 100);
+  }
+  
+  // Enerji miktarı (MJ)
+  getTotalEnergy() {
+    return this.amount * this.energy;
+  }
+  
+  // Kuru madde miktarı (kg)
+  getDryMatterAmount() {
+    return this.amount * (this.dryMatter / 100);
+  }
+}
+
+// Bu global event listener'ı kaldırdık çünkü setupEventListeners fonksiyonunda 
+// zaten addIngredientBtn için bir event listener eklenmiş durumda
+// ve çift event listener hata mesajlarının iki kez gösterilmesine neden oluyordu
+
 // DOM yüklendiğinde
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM fully loaded and parsed');
   
+  // Kritik elementlerin tam olarak yüklenip yüklenmediğini kontrol et
+  console.log("addIngredientModal element mevcut mu:", !!document.getElementById('addIngredientModal'));
+  console.log("profileDropdown element mevcut mu:", !!document.getElementById('profileDropdown'));
+  console.log("profileList element mevcut mu:", !!document.getElementById('profileList'));
+  console.log("addProfileBtn element mevcut mu:", !!document.getElementById('addProfileBtn'));
+  console.log("deleteProfileBtn element mevcut mu:", !!document.getElementById('deleteProfileBtn'));
+  console.log("selectedProfileName element mevcut mu:", !!document.getElementById('selectedProfileName'));
+  
   // Bootstrap modalları başlat
-  addProfileModal = new bootstrap.Modal(document.getElementById('addProfileModal'));
-  deleteProfileModal = new bootstrap.Modal(document.getElementById('deleteProfileModal'));
-  addTypeModal = new bootstrap.Modal(document.getElementById('addTypeModal'));
-  animalDetailModal = new bootstrap.Modal(document.getElementById('animalDetailModal'));
-  deleteAnimalModal = new bootstrap.Modal(document.getElementById('deleteAnimalModal'));
+  try {
+    // Her modal için ayrı try-catch bloğu kullanılacak
+    try {
+      addProfileModal = new bootstrap.Modal(document.getElementById('addProfileModal'));
+      console.log("addProfileModal başarıyla başlatıldı");
+    } catch (error) {
+      console.error("addProfileModal başlatılamadı:", error);
+    }
+    
+    try {
+      deleteProfileModal = new bootstrap.Modal(document.getElementById('deleteProfileModal'));
+      console.log("deleteProfileModal başarıyla başlatıldı");
+    } catch (error) {
+      console.error("deleteProfileModal başlatılamadı:", error);
+    }
+    
+    try {
+      addTypeModal = new bootstrap.Modal(document.getElementById('addTypeModal'));
+      animalDetailModal = new bootstrap.Modal(document.getElementById('animalDetailModal'));
+      deleteAnimalModal = new bootstrap.Modal(document.getElementById('deleteAnimalModal'));
+      addRationModal = new bootstrap.Modal(document.getElementById('addRationModal'));
+      addIngredientModal = new bootstrap.Modal(document.getElementById('addIngredientModal'));
+      console.log("Diğer modallar başarıyla başlatıldı");
+    } catch (error) {
+      console.error("Bazı modallar başlatılamadı:", error);
+    }
+  } catch (error) {
+    console.error("Modal başlatmada genel hata:", error);
+  }
   
   // Event listener'ları ekle
-  setupEventListeners();
+  try {
+    console.log("Event listener'lar ekleniyor...");
+    setupEventListeners();
+    console.log("Event listener'lar başarıyla eklendi");
+  } catch (error) {
+    console.error("Event listener'lar eklenirken hata:", error);
+  }
   
   // Profilleri yükle
-  await loadProfiles();
+  try {
+    console.log("Profil yükleme başladı");
+    await loadProfiles();
+    console.log("Profil yükleme tamamlandı");
+  } catch (error) {
+    console.error("Profil yükleme hatası:", error);
+  }
   
   // Aktif profili ayarla ve profile ID'yi bekle
-  const profileId = await setInitialActiveProfile();
-  console.log('DOM loaded with active profile ID:', profileId);
-  
-  // Profile bilgisinin yüklenmesini bekle - kısa bir gecikme
-  setTimeout(async () => {
-    // Mevcut hash'e göre içeriği yükle
-    const currentHash = location.hash || '#dashboard';
-    console.log('Current hash on page load (after delay):', currentHash);
-    console.log('Active Profile ID (after delay):', activeProfileId);
+  try {
+    console.log("Aktif profil ayarlama başladı");
+    const profileId = await setInitialActiveProfile();
+    console.log('DOM loaded with active profile ID:', profileId);
     
-    // Hash'e göre view göster
-    showView(currentHash);
-    
-    // Eğer hash health-records ise, sağlık kayıtlarını yükle
-    if (currentHash === '#health-records') {
-      console.log('Health records hash detected, loading data...');
-      await loadHealthAnimals();
-      await loadHealthRecords();
-    }
-    // Eğer hash animal-list ise, hayvanları yükle
-    else if (currentHash === '#animal-list') {
-      await loadAnimalTypes(animalTypeFilter);
-      await loadAnimals();
-    }
-    // Hash dashboard ise istatistikleri güncelle
-    else if (currentHash === '#dashboard') {
-      await updateDashboardStats();
-    }
-  }, 500); // 500ms gecikme
+    // Profile bilgisinin yüklenmesini bekle - kısa bir gecikme
+    setTimeout(async () => {
+      // Mevcut hash'e göre içeriği yükle
+      const currentHash = location.hash || '#dashboard';
+      console.log('Current hash on page load (after delay):', currentHash);
+      console.log('Active Profile ID (after delay):', activeProfileId);
+      
+      // Hash'e göre view göster
+      showView(currentHash);
+      
+      // Eğer hash health-records ise, sağlık kayıtlarını yükle
+      if (currentHash === '#health-records') {
+        console.log('Health records hash detected, loading data...');
+        await loadHealthAnimals();
+        await loadHealthRecords();
+      }
+      // Eğer hash animal-list ise, hayvanları yükle
+      else if (currentHash === '#animal-list') {
+        await loadAnimalTypes(animalTypeFilter);
+        await loadAnimals();
+      }
+      // Hash dashboard ise istatistikleri güncelle
+      else if (currentHash === '#dashboard') {
+        await updateDashboardStats();
+      }
+    }, 500); // 500ms gecikme
+  } catch (error) {
+    console.error("Aktif profil ayarlama hatası:", error);
+  }
 });
 
 // Event listener'ları ekle
@@ -373,7 +526,7 @@ function setupEventListeners() {
     });
   });
   
-  // Alt menü linkleri (dropdown içindekiler)
+  // Sidebar Alt menü linkleri (dropdown içindekiler)
   document.querySelectorAll('.sub-menu .nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -391,7 +544,7 @@ function setupEventListeners() {
         l.classList.remove('active');
       });
       
-      // Üst dropdown menüsünün aktif olduğunu belirt
+      // Dropdown menüyü aktif yap
       if (livestockDropdown) {
         livestockDropdown.classList.add('active');
       }
@@ -400,241 +553,124 @@ function setupEventListeners() {
       const href = link.getAttribute('href');
       showView(href);
       
-      // Hayvan ekle sayfasına geldiğimizde hayvan türlerini yükle
-      if (href === '#add-animal') {
-        loadAnimalTypes();
-      }
-      
-      // Hayvan listesi sayfasına geldiğimizde hayvanları ve türleri yükle
+      // Hayvan listesi görünümü için hayvanları yükle
       if (href === '#animal-list') {
-        try {
-          console.log('Sidebar: Hayvan listesi sayfasına tıklandı, veriler yükleniyor...');
-          
-          // Yenile butonuna dönüş animasyonu ekle
-          if (refreshAnimalListBtn) {
-            const icon = refreshAnimalListBtn.querySelector('i');
-            if (icon) {
-              icon.classList.add('fa-spin');
-              setTimeout(() => {
-                icon.classList.remove('fa-spin');
-              }, 1000);
-            }
-          }
-          
-          // Hayvan türlerini ve hayvanları yükle
         loadAnimalTypes(animalTypeFilter);
         loadAnimals();
-        } catch (error) {
-          console.error('Sidebar: Hayvan listesi yüklenirken hata:', error);
-        }
       }
-      
-      // Sağlık bilgileri sayfasına geldiğimizde hayvanları ve sağlık kayıtlarını yükle
-      if (href === '#health-records') {
-        try {
-          console.log('Sidebar: Sağlık bilgileri sayfasına tıklandı, veriler yükleniyor...');
-          
-          // Yenile butonuna dönüş animasyonu ekle
-          if (refreshHealthListBtn) {
-            const icon = refreshHealthListBtn.querySelector('i');
-            if (icon) {
-              icon.classList.add('fa-spin');
-              setTimeout(() => {
-                icon.classList.remove('fa-spin');
-              }, 1000);
-            }
-          }
-          
-          // Hayvanları ve sağlık kayıtlarını yükle
-          loadHealthAnimals();
-          loadHealthRecords();
-        } catch (error) {
-          console.error('Sidebar: Sağlık bilgileri yüklenirken hata:', error);
-        }
+      // Sağlık kayıtları görünümü için sağlık kayıtlarını yükle
+      else if (href === '#health-records') {
+        loadHealthAnimals();
+        loadHealthRecords();
       }
-      
-      // Gebelik durumu sayfasına geldiğimizde havanları ve üreme/gebelik kayıtlarını yükle
-      if (href === '#pregnancy') {
-        try {
-          console.log('Sidebar: Gebelik durumu sayfasına tıklandı, veriler yükleniyor...');
-          
-          // Yenile butonuna dönüş animasyonu ekle
-          if (refreshBreedingListBtn) {
-            const icon = refreshBreedingListBtn.querySelector('i');
-            if (icon) {
-              icon.classList.add('fa-spin');
-              setTimeout(() => {
-                icon.classList.remove('fa-spin');
-              }, 1000);
-            }
-          }
-          
-          // Hayvanları ve üreme/gebelik kayıtlarını yükle
-          loadBreedingAnimals();
-          loadBreedingRecords();
-        } catch (error) {
-          console.error('Sidebar: Gebelik durumu yüklenirken hata:', error);
-        }
+      // Gebelik durumu görünümü için üreme kayıtlarını yükle
+      else if (href === '#pregnancy') {
+        loadBreedingRecords();
       }
-      
-      // Sağım verileri sayfasına geldiğimizde hayvanları ve sağım kayıtlarını yükle
-      if (href === '#milk-records') {
-        try {
-          console.log('Sidebar: Sağım verileri sayfasına tıklandı, veriler yükleniyor...');
-          
-          // Yenile butonuna dönüş animasyonu ekle
-          if (refreshMilkListBtn) {
-            const icon = refreshMilkListBtn.querySelector('i');
-            if (icon) {
-              icon.classList.add('fa-spin');
-              setTimeout(() => {
-                icon.classList.remove('fa-spin');
-              }, 1000);
-            }
-          }
-          
-          // Hayvanları ve sağım kayıtlarını yükle
-          loadMilkAnimals();
-          loadMilkRecords();
-        } catch (error) {
-          console.error('Sidebar: Sağım verileri yüklenirken hata:', error);
-        }
+      // Sağım verileri görünümü için sağım kayıtlarını yükle
+      else if (href === '#milk-records') {
+        loadMilkAnimals();
+        loadMilkRecords();
+      }
+      // Yem Rasyon görünümü için rasyonları yükle
+      else if (href === '#feed-ration') {
+        loadRations();
       }
     });
   });
   
-  // Dropdown menü kontrolü
-  if (livestockDropdown) {
-    livestockDropdown.addEventListener('click', (e) => {
-      // Sadece dropdown'ı açıp kapatma işlemi yapılır, alt menü seçilmez
-      const bsCollapse = bootstrap.Collapse.getInstance(livestockSubmenu) || 
-                          new bootstrap.Collapse(livestockSubmenu, { toggle: false });
-      
-      // Dropdown toggle işlemi
-      if (livestockSubmenu.classList.contains('show')) {
-        bsCollapse.hide();
-      } else {
-        bsCollapse.show();
-        
-        // Dropdown açılınca diğer menülerin active durumunu temizle
-        // Ama alt menü seçimini yapma
-        document.querySelectorAll('.nav > .nav-item > .nav-link:not(.dropdown-toggle)').forEach(l => {
-          l.classList.remove('active');
-        });
-        
-        // Dropdown'ı active yap
-        livestockDropdown.classList.add('active');
-      }
-    });
-    
-    // Dropdown kapandığında
-    livestockSubmenu.addEventListener('hidden.bs.collapse', () => {
-      // Eğer alt menüde hala aktif bir öğe varsa, dropdown'ı aktif tut
-      if (!document.querySelector('.sub-menu .nav-link.active')) {
-        livestockDropdown.classList.remove('active');
-      }
+  // Rasyon sayfası için event listener'lar
+  // Rasyon yenileme butonu
+  const refreshRationListBtn = document.getElementById('refreshRationListBtn');
+  if (refreshRationListBtn) {
+    refreshRationListBtn.addEventListener('click', () => {
+      loadRations();
     });
   }
   
-  // Hayvan türü ekleme butonu
-  if (addTypeBtn) {
-    addTypeBtn.addEventListener('click', () => {
-      // Form alanlarını temizle
-      typeName.value = '';
-      typeDescription.value = '';
-      // Modalı göster
-      addTypeModal.show();
-    });
+  // Rasyon filtre değişikliklerini dinle
+  const rationSearchInput = document.getElementById('rationSearchInput');
+  const rationAnimalTypeFilter = document.getElementById('rationAnimalTypeFilter');
+  const rationStatusFilter = document.getElementById('rationStatusFilter');
+  const rationPageSizeSelect = document.getElementById('rationPageSizeSelect');
+  
+  if (rationSearchInput) {
+    rationSearchInput.addEventListener('input', filterRations);
   }
   
-  // Hayvan türü kaydetme butonu
-  if (saveTypeBtn) {
-    saveTypeBtn.addEventListener('click', async () => {
-      if (typeName.value.trim() === '') {
-        alert('Tür adı boş olamaz!');
-        return;
-      }
-      
-      if (!activeProfileId) {
-        alert('Aktif profil bulunamadı!');
-        return;
-      }
-      
-      try {
-        const result = await window.lsmAPI.animals.types.create({
-          profile_id: activeProfileId,
-          name: typeName.value.trim(),
-          description: typeDescription.value.trim()
-        });
-        
-        if (result.success) {
-          addTypeModal.hide();
-          await loadAnimalTypes();
-        } else {
-          alert('Hayvan türü eklenirken bir hata oluştu: ' + result.error);
-        }
-      } catch (error) {
-        console.error('Hayvan türü eklenirken hata:', error);
-        alert('Hayvan türü eklenirken bir hata oluştu!');
-      }
-    });
+  if (rationAnimalTypeFilter) {
+    rationAnimalTypeFilter.addEventListener('change', filterRations);
   }
   
-  // Tür ekleme modalı kapatıldığında hayvan türlerini güncelle
-  document.getElementById('addTypeModal').addEventListener('hidden.bs.modal', async () => {
-    await loadAnimalTypes(modalAnimalType);
-  });
+  if (rationStatusFilter) {
+    rationStatusFilter.addEventListener('change', filterRations);
+  }
+  
+  if (rationPageSizeSelect) {
+    rationPageSizeSelect.addEventListener('change', (e) => {
+      rationPageSize = parseInt(e.target.value);
+      rationCurrentPage = 1;
+      filterRations();
+    });
+  }
 
-  // Modal hayvan formu submit
-  modalAddAnimalForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-    
-    try {
-      const result = await window.lsmAPI.animals.create({
-          profile_id: activeProfileId,
-        tag_id: modalAnimalTagId.value.trim(),
-        type_id: modalAnimalType.value,
-        name: modalAnimalName.value.trim(),
-        gender: modalAnimalGender.value,
-        birth_date: modalAnimalBirthDate.value || null,
-        acquisition_date: modalAnimalAcquisitionDate.value,
-        acquisition_cost: modalAnimalAcquisitionCost.value ? parseFloat(modalAnimalAcquisitionCost.value) : null,
-        status: modalAnimalStatus.value,
-        notes: modalAnimalNotes.value.trim()
-      });
-        
-        if (result.success) {
-        // Modalı kapat
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addAnimalModal'));
-        modal.hide();
-        
-          // Formu temizle
-        modalAddAnimalForm.reset();
-        
-        // Hayvan listesini güncelle
-        await loadAnimals();
-        
-        // Başarı mesajını göster
-        const successMessage = document.getElementById('animalSuccessMessage');
-        successMessage.classList.remove('d-none');
-          setTimeout(() => {
-          successMessage.classList.add('d-none');
-        }, 3000);
-        } else {
-          alert('Hayvan eklenirken bir hata oluştu: ' + result.error);
-        }
-      } catch (error) {
-        console.error('Hayvan eklenirken hata:', error);
-        alert('Hayvan eklenirken bir hata oluştu!');
+  // Rasyon Ekle modalındaki "Yem Malzemesi Ekle" butonu
+  const addIngredientBtn = document.getElementById('addIngredientBtn');
+  if (addIngredientBtn) {
+    addIngredientBtn.addEventListener('click', addIngredientToRation);
+  }
+  
+  // Rasyon Ekle modalındaki "Kaydet" butonu
+  const saveRationBtn = document.getElementById('saveRationBtn');
+  if (saveRationBtn) {
+    saveRationBtn.addEventListener('click', saveRation);
+  }
+  
+  // Yeni Malzeme Ekleme modalındaki "Kaydet" butonu
+  const saveIngredientBtn = document.getElementById('saveIngredientBtn');
+  if (saveIngredientBtn) {
+    saveIngredientBtn.addEventListener('click', saveNewIngredient);
+  }
+  
+  // Malzeme türü seçildiğinde varsayılan değerleri doldur
+  const ingredientName = document.getElementById('ingredientName');
+  if (ingredientName) {
+    ingredientName.addEventListener('change', (e) => {
+      const selectedValue = e.target.value;
+      
+      // "Yeni Malzeme..." seçeneği
+      if (selectedValue === "Yeni Malzeme...") {
+        // Yeni malzeme ekleme modalını aç
+        const addIngredientModal = new bootstrap.Modal(document.getElementById('addIngredientModal'));
+        addIngredientModal.show();
+      } else if (selectedValue) {
+        // Seçilen malzeme türünün varsayılan değerlerini doldur
+        fillIngredientDefaults(selectedValue);
       }
     });
+  }
   
-  // Hayvan ekleme modalı açıldığında türleri yükle
-  document.getElementById('addAnimalModal').addEventListener('show.bs.modal', async () => {
-    await loadAnimalTypes(modalAnimalType);
-  });
+  // Rasyon dışa aktarma butonu
+  const exportRationCsvBtn = document.getElementById('exportRationCsvBtn');
+  if (exportRationCsvBtn) {
+    exportRationCsvBtn.addEventListener('click', exportRationsToCsv);
+  }
   
-  // Hayvan listesi ile ilgili event listener'lar
+  // Rasyon yazdırma butonu
+  const printRationListBtn = document.getElementById('printRationListBtn');
+  if (printRationListBtn) {
+    printRationListBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+  
+  // Rasyon modalı kapatıldığında formu sıfırla
+  const addRationModal = document.getElementById('addRationModal');
+  if (addRationModal) {
+    addRationModal.addEventListener('hidden.bs.modal', resetRationForm);
+  }
+  
+  // Hayvan listesi yenileme butonu
   if (refreshAnimalListBtn) {
     refreshAnimalListBtn.addEventListener('click', async () => {
       try {
@@ -1528,6 +1564,836 @@ function setupEventListeners() {
       `;
     }
   };
+
+  // Rasyon sayfasındaki yenileme butonu
+  if (refreshRationListBtn) {
+    refreshRationListBtn.addEventListener('click', async () => {
+      try {
+        // Yenile butonuna dönüş animasyonu ekle
+        const icon = refreshRationListBtn.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+        
+        // Rasyonları yeniden yükle
+        await loadRations();
+        
+        // Animasyonu durdur
+        setTimeout(() => {
+          if (icon) icon.classList.remove('fa-spin');
+        }, 500);
+      } catch (error) {
+        console.error('Rasyon listesi yenilenirken hata:', error);
+      }
+    });
+  }
+  
+  // Rasyon filtreleme ve arama eventleri
+  if (rationSearchInput) rationSearchInput.addEventListener('input', () => { rationCurrentPage = 1; filterRations(); });
+  if (rationAnimalTypeFilter) rationAnimalTypeFilter.addEventListener('change', () => { rationCurrentPage = 1; filterRations(); });
+  if (rationStatusFilter) rationStatusFilter.addEventListener('change', () => { rationCurrentPage = 1; filterRations(); });
+  if (rationPageSizeSelect) rationPageSizeSelect.addEventListener('change', () => { rationPageSize = parseInt(rationPageSizeSelect.value); rationCurrentPage = 1; filterRations(); });
+  
+  // Rasyon yazdırma ve CSV butonları
+  if (printRationListBtn) {
+    printRationListBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+  
+  if (exportRationCsvBtn) {
+    exportRationCsvBtn.addEventListener('click', () => {
+      exportRationsToCsv();
+    });
+  }
+  
+  // Yem malzemesi ekleme butonu
+  // Not: Bu listener başka bir yerde zaten tanımlandı
+  
+  // Yem malzemesi seçimi değiştiğinde
+  if (ingredientName) {
+    // Önce önceki event listener'ları kaldıralım (multiple listener sorunu)
+    const newIngredientName = ingredientName.cloneNode(true);
+    ingredientName.parentNode.replaceChild(newIngredientName, ingredientName);
+    
+    // Yeni elemana event listener ekleyelim
+    newIngredientName.addEventListener('change', (e) => {
+      console.log("Malzeme seçimi değişti:", newIngredientName.value);
+      if (newIngredientName.value === "Yeni Malzeme...") {
+        // "Yeni Malzeme" seçildiğinde modalı göster
+        console.log("Yeni malzeme modalı açılıyor...");
+        addIngredientModal.show();
+        // Select'i sıfırla
+        setTimeout(() => {
+          newIngredientName.selectedIndex = 0;
+        }, 100);
+      } else if (newIngredientName.value) {
+        // Seçilen malzemenin varsayılan değerlerini doldur
+        console.log("Varsayılan değerler dolduruluyor...");
+        fillIngredientDefaults(newIngredientName.value);
+      }
+    });
+    
+    // Global değişkeni güncelle
+    ingredientName = newIngredientName;
+  }
+  
+  // Yeni malzeme kaydetme butonu
+  if (saveIngredientBtn) {
+    console.log("saveIngredientBtn event listener ekleniyor");
+    // Önce önceki event listener'ları temizleyelim
+    const newSaveIngredientBtn = saveIngredientBtn.cloneNode(true);
+    saveIngredientBtn.parentNode.replaceChild(newSaveIngredientBtn, saveIngredientBtn);
+    
+    // Yeni event listener ekleyelim
+    newSaveIngredientBtn.addEventListener('click', function(e) {
+      console.log("Malzeme kaydet butonuna tıklandı");
+      e.preventDefault();
+      saveNewIngredient();
+    });
+    
+    // Global değişkeni güncelle
+    saveIngredientBtn = newSaveIngredientBtn;
+  } else {
+    console.error("saveIngredientBtn bulunamadı!");
+  }
+  
+  // Rasyon kaydetme butonu
+  if (saveRationBtn) {
+    saveRationBtn.addEventListener('click', async () => {
+      saveRation();
+    });
+  }
+  
+  // Rasyon modalı açıldığında sadece formu sıfırla
+  document.getElementById('addRationModal')?.addEventListener('show.bs.modal', async () => {
+    console.log("Rasyon modalı açılıyor, form sıfırlanıyor...");
+    resetRationForm(); // Bu resetIngredientForm'u da çağırır, canlı alanlar sıfırlanır
+    await loadFeedIngredientTypes(); // Yem malzemesi türlerini yükle
+    
+    // Artık butona listener eklemiyoruz, global listener kullanıyoruz
+    const addIngBtn = document.getElementById('addIngredientBtn');
+    if (addIngBtn) {
+      console.log("+ butonu bulundu");
+    } else {
+      console.error("+ butonu bulunamadı!");
+    }
+  });
+  
+  // Canlı yem bileşeni toplamlarını hesaplamak için inputlara event listener ekle
+  const ingAmountEl = document.getElementById('ingredientAmount');
+  const ingProteinEl = document.getElementById('ingredientProtein');
+  const ingEnergyEl = document.getElementById('ingredientEnergy');
+
+  if (ingAmountEl) ingAmountEl.addEventListener('input', updateLiveIngredientTotals);
+  if (ingProteinEl) ingProteinEl.addEventListener('input', updateLiveIngredientTotals);
+  if (ingEnergyEl) ingEnergyEl.addEventListener('input', updateLiveIngredientTotals);
+
+  // Sidebar menüden yem rasyon sekmesine tıklanınca verileri yükle
+  document.querySelectorAll('.sub-menu .nav-link[href="#feed-ration"]').forEach(link => {
+    link.addEventListener('click', () => {
+      loadRations();
+    });
+  });
+}
+
+// Rasyonları yükle
+async function loadRations() {
+  try {
+    if (!activeProfileId) {
+      console.warn('loadRations: No active profile');
+      return;
+    }
+    
+    // Yükleniyor göstergesi ekle
+    const rationListContainer = document.getElementById('rationListContainer');
+    if (rationListContainer) {
+      rationListContainer.innerHTML = '<div class="text-center my-5"><div class="spinner-border" role="status"><span class="visually-hidden">Yükleniyor...</span></div><p class="mt-2">Rasyonlar yükleniyor...</p></div>';
+    }
+    
+    // Rasyonları getir
+    allRations = await window.lsmAPI.rations.getAll(activeProfileId);
+    console.log(`Loaded ${allRations.length} rations for profile ${activeProfileId}`);
+    
+    // Rasyonları filtrele ve göster
+    filterRations();
+    
+    // Kategori sayaçlarını güncelle
+    updateRationCategoryCounts();
+  } catch (error) {
+    console.error('Error loading rations:', error);
+    
+    const rationListContainer = document.getElementById('rationListContainer');
+    if (rationListContainer) {
+      rationListContainer.innerHTML = '<div class="alert alert-danger">Rasyonlar yüklenirken bir hata oluştu.</div>';
+    }
+  }
+}
+
+// Rasyonları filtrele
+function filterRations() {
+  if (!rationTableBody) return;
+  
+  // Arama ve filtreleme
+  const searchTerm = rationSearchInput ? rationSearchInput.value.toLowerCase() : '';
+  const animalGroupFilter = rationAnimalTypeFilter ? rationAnimalTypeFilter.value : '';
+  const statusFilter = rationStatusFilter ? rationStatusFilter.value : '';
+  
+  // Rasyonları filtrele
+  filteredRations = allRations.filter(ration => {
+    const matchesSearch =
+      !searchTerm ||
+      (ration.name && ration.name.toLowerCase().includes(searchTerm)) ||
+      (ration.animal_group && ration.animal_group.toLowerCase().includes(searchTerm)) ||
+      (ration.description && ration.description.toLowerCase().includes(searchTerm));
+    
+    const matchesAnimalGroup = !animalGroupFilter || ration.animal_group === animalGroupFilter;
+    const matchesStatus = !statusFilter || ration.status === statusFilter;
+    
+    return matchesSearch && matchesAnimalGroup && matchesStatus;
+  });
+  
+  // Sayfalama
+  const totalItems = filteredRations.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / rationPageSize));
+  
+  if (rationCurrentPage > totalPages) rationCurrentPage = totalPages;
+  const startIndex = rationPageSize > 0 ? (rationCurrentPage - 1) * rationPageSize : 0;
+  const endIndex = rationPageSize > 0 ? Math.min(startIndex + rationPageSize, totalItems) : totalItems;
+  const paginated = rationPageSize > 0 ? filteredRations.slice(startIndex, endIndex) : filteredRations;
+  
+  // Toplam sayı göstergesini güncelle
+  if (rationCount) {
+    rationCount.textContent = totalItems;
+  }
+  
+  // Tabloyu oluştur
+  renderRationTable(paginated);
+  
+  // Sayfalama göster
+  renderRationPagination(totalPages);
+}
+
+// Rasyon tablosunu oluştur
+function renderRationTable(rations) {
+  if (!rationTableBody) return;
+  
+  // Her durumda önce tabloyu temizle
+  rationTableBody.innerHTML = '';
+  
+  if (rations.length === 0) {
+    rationTableBody.innerHTML = `<tr><td colspan="7" class="text-center">Kayıt bulunamadı</td></tr>`;
+    return;
+  }
+  
+  let html = '';
+  rations.forEach(ration => {
+    const date = ration.created_at ? formatDate(ration.created_at) : '-';
+    
+    // Durum için sınıf belirle
+    let statusClass = ration.status === 'Aktif' ? 'badge bg-success' : 'badge bg-secondary';
+    
+    html += `<tr>
+      <td>${ration.name || '-'}</td>
+      <td>${ration.animal_group || '-'}</td>
+      <td>${date}</td>
+      <td>${ration.total_cost ? ration.total_cost.toFixed(2) + ' ₺' : '-'}</td>
+      <td>${ration.total_weight ? ration.total_weight + ' kg' : '-'}</td>
+      <td><span class="${statusClass}">${ration.status || '-'}</span></td>
+      <td>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-info btn-sm view-ration" data-id="${ration.id}" title="Detay"><i class="fas fa-eye"></i></button>
+          <button class="btn btn-outline-primary btn-sm edit-ration" data-id="${ration.id}" title="Düzenle"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-outline-danger btn-sm delete-ration" data-id="${ration.id}" title="Sil"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  
+  rationTableBody.innerHTML = html;
+  
+  // Butonlara event listener'ları ekle
+  document.querySelectorAll('.view-ration').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      viewRationDetails(id);
+    });
+  });
+  
+  document.querySelectorAll('.edit-ration').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      editRation(id);
+    });
+  });
+  
+  document.querySelectorAll('.delete-ration').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.id);
+      deleteRation(id);
+    });
+  });
+}
+
+// Sayfalama oluştur
+function renderRationPagination(totalPages) {
+  if (!rationPagination) return;
+  
+  if (totalPages <= 1) { 
+    rationPagination.innerHTML = ''; 
+    return; 
+  }
+  
+  let html = '';
+  html += `<li class="page-item ${rationCurrentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${rationCurrentPage - 1}">&laquo;</a></li>`;
+  
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<li class="page-item ${i === rationCurrentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+  }
+  
+  html += `<li class="page-item ${rationCurrentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${rationCurrentPage + 1}">&raquo;</a></li>`;
+  
+  rationPagination.innerHTML = html;
+  
+  document.querySelectorAll('#rationPagination .page-link[data-page]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = parseInt(link.dataset.page);
+      if (page >= 1 && page <= totalPages) {
+        rationCurrentPage = page;
+        filterRations();
+      }
+    });
+  });
+}
+
+// Rasyon kategori sayaçlarını güncelle
+function updateRationCategoryCounts() {
+  // Kart öğeleri kaldırıldı, bu fonksiyon artık bir şey yapmıyor
+}
+
+// Rasyonları CSV'e aktar
+function exportRationsToCsv() {
+  if (filteredRations.length === 0) {
+    alert('Dışa aktarılacak rasyon bulunamadı!');
+    return;
+  }
+  
+  // CSV başlıkları
+  const headers = [
+    'Rasyon Adı',
+    'Hayvan Grubu',
+    'Oluşturma Tarihi',
+    'Toplam Maliyet (₺)',
+    'Toplam Ağırlık (kg)',
+    'Durum',
+    'Açıklama'
+  ];
+  
+  // CSV verisi
+  let csvContent = headers.join(',') + '\n';
+  
+  filteredRations.forEach(ration => {
+    const row = [
+      escapeCsvValue(ration.name || ''),
+      escapeCsvValue(ration.animal_group || ''),
+      ration.created_at ? formatDate(ration.created_at) : '',
+      ration.total_cost || '0',
+      ration.total_weight || '0',
+      escapeCsvValue(ration.status || ''),
+      escapeCsvValue(ration.description || '')
+    ];
+    
+    csvContent += row.join(',') + '\n';
+  });
+  
+  // CSV dosyasını indir
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  // Dosya adı oluştur
+  const date = new Date();
+  const fileName = `rasyon_listesi_${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}.csv`;
+  
+  // İndirme işlemi
+  if (navigator.msSaveBlob) { // IE 10+
+    navigator.msSaveBlob(blob, fileName);
+  } else {
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+}
+
+// Rasyon detaylarını görüntüle
+function viewRationDetails(id) {
+  alert(`Rasyon detayları henüz eklenmedi! Rasyon ID: ${id}`);
+  // TODO: Detay görüntüleme
+}
+
+// Rasyon düzenle
+function editRation(id) {
+  alert(`Rasyon düzenleme henüz eklenmedi! Rasyon ID: ${id}`);
+  // TODO: Düzenleme
+}
+
+// Rasyon sil
+async function deleteRation(id) {
+  if (!confirm('Bu rasyonu silmek istediğinizden emin misiniz?')) {
+    return;
+  }
+  
+  try {
+    // API çağrısı eklenmeli
+    // const result = await window.lsmAPI.rations.delete(id);
+    
+    // Şimdilik yerel array'den sil
+    allRations = allRations.filter(r => r.id !== id);
+    
+    // Listeyi güncelle
+    filterRations();
+    updateRationCategoryCounts();
+    
+    alert('Rasyon başarıyla silindi!');
+  } catch (error) {
+    console.error(`Rasyon silinirken hata (ID: ${id}):`, error);
+    alert('Rasyon silinirken bir hata oluştu!');
+  }
+}
+
+// Yeni bileşen ekle
+function addIngredientToRation() {
+  console.log("addIngredientToRation fonksiyonu çalıştı");
+  
+  // Her çağrıda DOM elementlerini yeniden seç
+  const ingredientNameEl = document.getElementById('ingredientName');
+  const ingredientAmountEl = document.getElementById('ingredientAmount');
+  const ingredientDryMatterEl = document.getElementById('ingredientDryMatter');
+  const ingredientCostEl = document.getElementById('ingredientCost');
+  const ingredientProteinEl = document.getElementById('ingredientProtein');
+  const ingredientEnergyEl = document.getElementById('ingredientEnergy');
+  
+  if (!ingredientNameEl) {
+    console.error("ingredientName elementi bulunamadı!");
+    return;
+  }
+  
+  console.log("Seçilen malzeme değeri:", ingredientNameEl.value);
+  console.log("Seçilen index:", ingredientNameEl.selectedIndex);
+  
+  // Seçilen option'ın ne olduğunu kontrol et
+  const selectedOption = ingredientNameEl.options[ingredientNameEl.selectedIndex];
+  console.log("Seçilen option:", selectedOption ? selectedOption.text : "Yok");
+  
+  // Eğer seçim yok veya varsayılan "Malzeme seçin" seçeneği seçiliyse
+  if (!selectedOption || selectedOption.disabled) {
+    console.log("UYARI: Geçerli bir malzeme seçilmedi! (Seçim yok veya disabled)");
+    alert('Lütfen bir yem malzemesi seçin!');
+    return;
+  }
+  
+  // Eğer "Yeni Malzeme Ekle..." seçeneği seçiliyse, yeni malzeme ekleme modalını göster
+  if (ingredientNameEl.value === "Yeni Malzeme...") {
+    console.log("Yeni malzeme ekle seçeneği seçildi, modal açılacak");
+    const addIngredientModalInstance = bootstrap.Modal.getInstance(document.getElementById('addIngredientModal'));
+    if (addIngredientModalInstance) {
+      addIngredientModalInstance.show();
+    } else {
+      const addIngredientModal = new bootstrap.Modal(document.getElementById('addIngredientModal'));
+      if (addIngredientModal) {
+        addIngredientModal.show();
+      }
+    }
+    return;
+  }
+  
+  console.log("Malzeme kabul edildi, ekleniyor...");
+  
+  
+  if (!ingredientAmountEl.value || parseFloat(ingredientAmountEl.value) <= 0) {
+    alert('Lütfen geçerli bir miktar girin!');
+    return;
+  }
+  
+  if (!ingredientCostEl.value || parseFloat(ingredientCostEl.value) < 0) {
+    alert('Lütfen geçerli bir birim maliyet girin!');
+    return;
+  }
+  
+  console.log("Yem malzemesi ekleniyor:", ingredientNameEl.value, ingredientAmountEl.value, ingredientDryMatterEl.value, ingredientCostEl.value);
+  
+  const newIngredient = new Ingredient(
+    ingredientNameEl.value,
+    parseFloat(ingredientAmountEl.value),
+    parseFloat(ingredientCostEl.value),
+    parseFloat(ingredientProteinEl.value || 0),
+    parseFloat(ingredientEnergyEl.value || 0),
+    parseFloat(ingredientDryMatterEl.value || 100) // Kuru madde oranı değerini ekle
+  );
+  
+  // Bileşeni listeye ekle
+  currentIngredients.push(newIngredient);
+  
+  // Tabloyu ve toplamları güncelle
+  console.log("Malzeme listeye eklendi, tablo güncelleniyor...", currentIngredients.length);
+  updateIngredientsTable();
+  calculateTotals();
+  console.log("Toplam malzeme sayısı:", currentIngredients.length);
+  
+  // Form alanlarını temizle
+  ingredientNameEl.selectedIndex = 0;
+  ingredientAmountEl.value = '';
+  ingredientDryMatterEl.value = '100';  // Varsayılan değer 100%
+  ingredientCostEl.value = '';
+  ingredientProteinEl.value = '';
+  ingredientEnergyEl.value = '';
+}
+
+// Bileşenler tablosunu güncelle
+function updateIngredientsTable() {
+  // Her seferinde elementi yeniden seçelim
+  const ingredientsTableBodyElement = document.getElementById('ingredientsTableBody');
+  console.log("updateIngredientsTable çağrıldı, ingredientsTableBody mevcut mu:", !!ingredientsTableBodyElement);
+  
+  if (!ingredientsTableBodyElement) {
+    console.error("ingredientsTableBody elementi bulunamadı!");
+    return;
+  }
+  
+  console.log("Güncellenecek bileşen sayısı:", currentIngredients.length);
+  if (currentIngredients.length === 0) {
+    ingredientsTableBodyElement.innerHTML = `<tr><td colspan="11" class="text-center">Henüz yem bileşeni eklenmedi.</td></tr>`;
+    return;
+  }
+  
+  let html = '';
+  currentIngredients.forEach((ingredient, index) => {
+    const totalCost = ingredient.getTotalCost().toFixed(2);
+    const totalProteinGrams = (ingredient.getProteinAmount() * 1000).toFixed(1); // kg'dan grama çevir
+    const totalEnergyMJ = ingredient.getTotalEnergy().toFixed(1);
+    const dryMatterKg = ingredient.getDryMatterAmount().toFixed(1); // Kuru madde kg cinsinden
+    
+    html += `<tr>
+      <td>${ingredient.name}</td>
+      <td>${ingredient.amount.toFixed(1)} kg</td>
+      <td>${ingredient.dryMatter.toFixed(1)} %</td>
+      <td>${dryMatterKg} kg</td>
+      <td>${ingredient.cost.toFixed(2)} ₺</td>
+      <td>${totalCost} ₺</td>
+      <td>${ingredient.protein.toFixed(1)} %</td>
+      <td>${totalProteinGrams} g</td>
+      <td>${ingredient.energy.toFixed(1)} MJ/kg</td>
+      <td>${totalEnergyMJ} MJ</td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient" data-index="${index}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>`;
+  });
+  
+  ingredientsTableBodyElement.innerHTML = html;
+  
+  // Silme butonlarına event listener'lar ekle
+  console.log("Silme butonlarına event listener'lar ekleniyor...");
+  document.querySelectorAll('.remove-ingredient').forEach(btn => {
+    btn.addEventListener('click', () => {
+      console.log("Silme butonuna tıklandı, index:", btn.dataset.index);
+      const index = parseInt(btn.dataset.index);
+      removeIngredient(index);
+    });
+  });
+}
+
+// Bileşeni sil
+function removeIngredient(index) {
+  if (index >= 0 && index < currentIngredients.length) {
+    currentIngredients.splice(index, 1);
+    updateIngredientsTable();
+    calculateTotals();
+  }
+}
+
+// Toplam değerleri hesapla
+function calculateTotals() {
+  // Her çağrıda elementleri yeniden seç
+  const totalWeight = document.getElementById('totalWeight');
+  const totalDryMatter = document.getElementById('totalDryMatter');
+  const totalCost = document.getElementById('totalCost');
+  const totalProteinAmount = document.getElementById('totalProteinAmount');
+  const totalEnergyAmount = document.getElementById('totalEnergyAmount');
+  
+  if (!totalWeight || !totalDryMatter || !totalCost || !totalProteinAmount || !totalEnergyAmount) {
+    console.error("Toplam değer gösterge elementleri bulunamadı!");
+    return;
+  }
+  
+  console.log("Toplam değerler hesaplanıyor, malzeme sayısı:", currentIngredients.length);
+  
+  if (currentIngredients.length === 0) {
+    totalWeight.textContent = '0 kg';
+    totalDryMatter.textContent = '0 kg';
+    totalCost.textContent = '0 ₺';
+    totalProteinAmount.textContent = '0 g';
+    totalEnergyAmount.textContent = '0 MJ';
+    return;
+  }
+  
+  // Toplam ağırlık
+  const weightSum = currentIngredients.reduce((sum, ing) => sum + ing.amount, 0);
+  
+  // Toplam kuru madde
+  const dryMatterSum = currentIngredients.reduce((sum, ing) => sum + ing.getDryMatterAmount(), 0);
+  
+  // Toplam maliyet
+  const costSum = currentIngredients.reduce((sum, ing) => sum + ing.getTotalCost(), 0);
+  
+  // Toplam protein miktarı (kg) ve gram cinsinden
+  const proteinAmountKg = currentIngredients.reduce((sum, ing) => sum + ing.getProteinAmount(), 0);
+  const proteinAmountGram = proteinAmountKg * 1000; // kg'dan gram'a çevir
+  
+  // Toplam enerji değeri (MJ)
+  const totalEnergyValue = currentIngredients.reduce((sum, ing) => sum + ing.getTotalEnergy(), 0);
+  
+  // Değerleri göster
+  totalWeight.textContent = `${weightSum.toFixed(1)} kg`;
+  totalDryMatter.textContent = `${dryMatterSum.toFixed(1)} kg`;
+  totalCost.textContent = `${costSum.toFixed(2)} ₺`;
+  totalProteinAmount.textContent = `${proteinAmountGram.toFixed(1)} g`;
+  totalEnergyAmount.textContent = `${totalEnergyValue.toFixed(1)} MJ`;
+  
+  console.log("Toplam değerler güncellendi:", 
+    weightSum.toFixed(1) + " kg",
+    dryMatterSum.toFixed(1) + " kg KM",
+    costSum.toFixed(2) + " ₺", 
+    proteinAmountGram.toFixed(1) + " g", 
+    totalEnergyValue.toFixed(1) + " MJ");
+}
+
+// Yeni malzeme kaydet
+async function saveNewIngredient() {
+  console.log("saveNewIngredient fonksiyonu çağrıldı");
+  
+  const newIngredientNameEl = document.getElementById('newIngredientName');
+  const newIngredientCostEl = document.getElementById('newIngredientCost'); 
+  const newIngredientProteinEl = document.getElementById('newIngredientProtein');
+  const newIngredientEnergyEl = document.getElementById('newIngredientEnergy');
+  const newIngredientDryMatterEl = document.getElementById('newIngredientDryMatter');
+  const newIngredientNotesEl = document.getElementById('newIngredientNotes');
+  
+  if (!newIngredientNameEl || !newIngredientNameEl.value || newIngredientNameEl.value.trim() === "") {
+    alert('Lütfen malzeme adı girin!');
+    return;
+  }
+  if (!activeProfileId) {
+    alert('Aktif profil bulunamadı! Malzeme türü kaydedilemiyor.');
+    return;
+  }
+
+  const ingredientTypeData = {
+    profile_id: activeProfileId,
+    name: newIngredientNameEl.value.trim(),
+    default_cost: parseFloat(newIngredientCostEl.value || 0),
+    default_protein: parseFloat(newIngredientProteinEl.value || 0),
+    default_energy: parseFloat(newIngredientEnergyEl.value || 0),
+    default_dry_matter: parseFloat(newIngredientDryMatterEl.value || 100),
+    notes: newIngredientNotesEl.value.trim() || ''
+  };
+
+  try {
+    const result = await window.lsmAPI.feedIngredientTypes.create(ingredientTypeData);
+    if (result.success) {
+      alert('Yeni yem malzemesi türü başarıyla kaydedildi!');
+      
+      // Formu temizle
+      newIngredientNameEl.value = '';
+      if (newIngredientCostEl) newIngredientCostEl.value = '';
+      if (newIngredientProteinEl) newIngredientProteinEl.value = '';
+      if (newIngredientEnergyEl) newIngredientEnergyEl.value = '';
+      if (newIngredientDryMatterEl) newIngredientDryMatterEl.value = '100';
+      if (newIngredientNotesEl) newIngredientNotesEl.value = '';
+      
+      // Modalı kapat
+      const modal = bootstrap.Modal.getInstance(document.getElementById('addIngredientModal'));
+      if (modal) {
+        modal.hide();
+      }
+
+      // Malzeme listesini güncelle ve yeni ekleneni seç
+      await loadFeedIngredientTypes(); // Bu fonksiyonu oluşturacağız
+      const selectElement = document.getElementById('ingredientName');
+      if (selectElement) {
+        selectElement.value = ingredientTypeData.name; // Yeni eklenen adı seç
+        fillIngredientDefaults(ingredientTypeData.name); // Değerlerini doldur
+      }
+
+    } else {
+      alert('Yem malzemesi türü kaydedilirken hata: ' + (result.error || 'Bilinmeyen hata'));
+    }
+  } catch (error) {
+    console.error('Yem malzemesi türü kaydedilirken hata:', error);
+    alert('Yem malzemesi türü kaydedilirken bir istisna oluştu: ' + (error.userMessage || error.message || 'Bilinmeyen hata'));
+  }
+}
+
+// Bileşen formunu sıfırla
+function resetIngredientForm() {
+  ingredientName.selectedIndex = 0;
+  ingredientAmount.value = '';
+  ingredientDryMatter.value = '100';  // Kuru madde varsayılan değer
+  ingredientCost.value = '';
+  ingredientProtein.value = '';
+  ingredientEnergy.value = '';
+  // Canlı toplamları da sıfırla
+  if (liveTotalProteinEl) liveTotalProteinEl.value = '';
+  if (liveTotalEnergyEl) liveTotalEnergyEl.value = '';
+}
+
+// Rasyon formunu sıfırla
+function resetRationForm() {
+  const formElement = document.getElementById('addRationForm');
+  if (formElement) {
+    formElement.reset();
+  } else {
+    console.error("addRationForm elementi bulunamadı!");
+  }
+  currentIngredients = [];
+  updateIngredientsTable();
+  calculateTotals();
+}
+
+// Seçilen malzemenin varsayılan değerlerini doldur
+function fillIngredientDefaults(ingredientNameValue) {
+  const costEl = document.getElementById('ingredientCost');
+  const proteinEl = document.getElementById('ingredientProtein');
+  const energyEl = document.getElementById('ingredientEnergy');
+  const dryMatterEl = document.getElementById('ingredientDryMatter');
+
+  if (!costEl || !proteinEl || !energyEl || !dryMatterEl) {
+    console.error("Form alanları bulunamadı!");
+    return;
+  }
+
+  // Önce cache'den (veritabanından gelen) değerleri ara
+  const cachedType = feedIngredientTypesCache.find(type => type.name === ingredientNameValue);
+
+  if (cachedType) {
+    costEl.value = cachedType.default_cost || 0;
+    proteinEl.value = cachedType.default_protein || 0;
+    energyEl.value = cachedType.default_energy || 0;
+    dryMatterEl.value = cachedType.default_dry_matter || 100;
+    return;
+  }
+
+  // Cache'de yoksa, hardcoded değerlere bak (fallback)
+  const hardcodedValues = {
+    'Kuru Ot': { cost: 2.5, protein: 12.5, energy: 8.0, dryMatter: 90.0 },
+    'Silaj': { cost: 1.2, protein: 8.0, energy: 10.5, dryMatter: 35.0 },
+    'Arpa': { cost: 5.5, protein: 11.5, energy: 13.0, dryMatter: 88.0 },
+    'Yonca': { cost: 3.0, protein: 18.0, energy: 9.5, dryMatter: 88.0 },
+    'Mısır': { cost: 7.0, protein: 9.0, energy: 14.0, dryMatter: 88.0 },
+    'Soya Küspesi': { cost: 12.0, protein: 48.0, energy: 13.5, dryMatter: 89.0 },
+    'Pamuk Tohumu': { cost: 8.0, protein: 21.0, energy: 20.0, dryMatter: 92.0 },
+    'Vitamin Premiks': { cost: 30.0, protein: 0.0, energy: 0.0, dryMatter: 98.0 },
+    'Mineral Premiks': { cost: 25.0, protein: 0.0, energy: 0.0, dryMatter: 98.0 }
+    // Diğer hardcoded malzemeler buraya eklenebilir
+  };
+  
+  const values = hardcodedValues[ingredientNameValue] || { cost: 0, protein: 0, energy: 0, dryMatter: 100 };
+  
+  costEl.value = values.cost;
+  proteinEl.value = values.protein;
+  energyEl.value = values.energy;
+  dryMatterEl.value = values.dryMatter;
+
+  updateLiveIngredientTotals(); // Varsayılanlar dolunca canlı toplamları güncelle
+}
+
+// Rasyonu kaydet
+async function saveRation() {
+  try {
+    // DOM elementlerini her seferinde seçelim
+    const rationName = document.getElementById('rationName');
+    const animalGroup = document.getElementById('animalGroup');
+    const rationStatus = document.getElementById('rationStatus');
+    const rationDescription = document.getElementById('rationDescription');
+    const totalWeight = document.getElementById('totalWeight');
+    const totalDryMatter = document.getElementById('totalDryMatter');
+    const totalCost = document.getElementById('totalCost');
+    
+    if (!rationName || !rationName.value) {
+      alert('Lütfen rasyon adı girin!');
+      return;
+    }
+    
+    if (!animalGroup || !animalGroup.value) {
+      alert('Lütfen hayvan grubunu seçin!');
+      return;
+    }
+    
+    if (currentIngredients.length === 0) {
+      alert('En az bir yem malzemesi eklemelisiniz!');
+      return;
+    }
+    
+    // Toplam değerleri - texContent'ten sayısal değer çıkarıyoruz
+    const totalWeightValue = parseFloat(totalWeight.textContent.replace(/[^\d.-]/g, ''));
+    const totalDryMatterValue = parseFloat(totalDryMatter.textContent.replace(/[^\d.-]/g, ''));
+    const totalCostValue = parseFloat(totalCost.textContent.replace(/[^\d.-]/g, ''));
+    
+    // Bileşenleri uygun formata dönüştür
+    const ingredients = currentIngredients.map(ing => ({
+      name: ing.name,
+      amount: ing.amount,
+      dry_matter: ing.dryMatter,
+      cost: ing.cost,
+      protein: ing.protein,
+      energy: ing.energy
+    }));
+    
+    // Rasyon verilerini hazırla
+    const rationData = {
+      profile_id: activeProfileId,
+      name: rationName.value,
+      animal_group: animalGroup.value,
+      status: rationStatus.value,
+      description: rationDescription.value || '',
+      total_weight: totalWeightValue,
+      total_dry_matter: totalDryMatterValue,
+      total_cost: totalCostValue,
+      ingredients
+    };
+    
+    console.log('Kaydedilecek rasyon verileri:', rationData);
+    
+    // Veritabanına kaydet
+    const result = await window.lsmAPI.rations.create(rationData);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Rasyon kaydedilirken bir hata oluştu');
+    }
+    
+    // Form verilerini ve yem bileşenlerini sıfırla (modalı kapatmadan önce)
+    resetRationForm();
+    
+    // Modalı kapat
+    const addRationModalInstance = bootstrap.Modal.getInstance(document.getElementById('addRationModal'));
+    if (addRationModalInstance) {
+      addRationModalInstance.hide();
+    }
+    
+    // Rasyonları yeniden yükle
+    await loadRations();
+    
+    alert('Rasyon başarıyla kaydedildi!');
+  } catch (error) {
+    console.error('Rasyon kaydedilirken hata:', error);
+    alert(error.message || 'Rasyon kaydedilirken bir hata oluştu!');
+  }
 }
 
 // Belirtilen görünümü göster
@@ -1560,26 +2426,52 @@ function showView(hash) {
 // Profilleri yükle
 async function loadProfiles() {
   try {
+    console.log("loadProfiles fonksiyonu başladı");
+    
+    // DOM elementlerini kontrol et
+    const profileListElement = document.getElementById('profileList');
+    const selectedProfileNameElement = document.getElementById('selectedProfileName');
+    const deleteProfileBtnElement = document.getElementById('deleteProfileBtn');
+    
+    if (!profileListElement) {
+      console.error("'profileList' elementi bulunamadı!");
+      return;
+    }
+    
+    if (!selectedProfileNameElement) {
+      console.error("'selectedProfileName' elementi bulunamadı!");
+      return;
+    }
+    
+    if (!deleteProfileBtnElement) {
+      console.error("'deleteProfileBtn' elementi bulunamadı!");
+      return;
+    }
+    
+    // Profilleri API'den al
     const profiles = await window.lsmAPI.profiles.getAll();
+    console.log("Alınan profil sayısı:", profiles ? profiles.length : 0);
     
     // Profil listesini temizle
-    profileList.innerHTML = '';
+    profileListElement.innerHTML = '';
     
-    if (profiles.length === 0) {
+    if (!profiles || profiles.length === 0) {
+      console.log("Profil bulunamadı");
       const li = document.createElement('li');
       li.classList.add('dropdown-item', 'text-muted');
       li.textContent = 'Profil bulunamadı';
-      profileList.appendChild(li);
+      profileListElement.appendChild(li);
       
       // Aktif profil ID'sini sıfırla
       activeProfileId = null;
-      selectedProfileName.textContent = 'Profil Seçin';
+      selectedProfileNameElement.textContent = 'Profil Seçin';
       
       // Profil silme butonunu devre dışı bırak
-      deleteProfileBtn.disabled = true;
+      deleteProfileBtnElement.disabled = true;
     } else {
+      console.log("Profiller bulundu, listeye ekleniyor");
       // Profil silme butonunu etkinleştir
-      deleteProfileBtn.disabled = false;
+      deleteProfileBtnElement.disabled = false;
       
       // Profilleri listeye ekle
       profiles.forEach(profile => {
@@ -1596,15 +2488,17 @@ async function loadProfiles() {
         });
         
         li.appendChild(a);
-        profileList.appendChild(li);
+        profileListElement.appendChild(li);
       });
       
       // Aktif profil yoksa ilk profili aktif olarak ayarla
       if (!activeProfileId && profiles.length > 0) {
         activeProfileId = profiles[0].id;
-        selectedProfileName.textContent = profiles[0].name;
+        selectedProfileNameElement.textContent = profiles[0].name;
       }
     }
+    
+    console.log("loadProfiles fonksiyonu tamamlandı");
   } catch (error) {
     console.error('Profiller yüklenirken hata:', error);
     alert('Profiller yüklenirken bir hata oluştu!');
@@ -1614,20 +2508,55 @@ async function loadProfiles() {
 // İlk aktif profili ayarla
 async function setInitialActiveProfile() {
   try {
-    // Ana süreçten aktif profil ID'sini al
-    const activeId = await window.lsmAPI.profiles.getActive();
+    console.log("setInitialActiveProfile fonksiyonu başladı");
+    
+    // DOM elementlerini kontrol et
+    const selectedProfileNameElement = document.getElementById('selectedProfileName');
+    
+    if (!selectedProfileNameElement) {
+      console.error("'selectedProfileName' elementi bulunamadı!");
+      return null;
+    }
+    
+    // Önce localStorage'da kaydedilmiş profil ID'sini kontrol et
+    let activeId;
+    try {
+      activeId = localStorage.getItem('lastActiveProfileId');
+      console.log("localStorage'dan alınan profil ID:", activeId);
+    } catch (storageError) {
+      console.warn("localStorage'dan profil ID alınamadı:", storageError);
+    }
+    
+    // Eğer localStorage'da yoksa, ana süreçten almayı dene
+    if (!activeId) {
+      console.log("Ana süreçten aktif profil ID'si alınıyor...");
+      activeId = await window.lsmAPI.profiles.getActive();
+      console.log("API'den alınan aktif profil ID:", activeId);
+    }
     
     if (activeId) {
       // Profil bilgilerini al
+      console.log("Profil bilgileri alınıyor. ID:", activeId);
       const profile = await window.lsmAPI.profiles.getProfile(activeId);
+      console.log("Profil bilgileri:", profile);
       
       if (profile) {
         activeProfileId = profile.id;
-        selectedProfileName.textContent = profile.name;
+        selectedProfileNameElement.textContent = profile.name;
+        
+        // API'ye doğru kaydedildiğinden emin olmak için
+        await window.lsmAPI.profiles.setActive(profile.id);
+        
         console.log('setInitialActiveProfile: Active profile set to:', activeProfileId);
         return profile.id; // Profile ID'yi döndür
+      } else {
+        console.log("Profil bilgileri alınamadı veya geçersiz");
       }
+    } else {
+      console.log("Aktif profil ID'si bulunamadı");
     }
+    
+    console.log("setInitialActiveProfile fonksiyonu null döndürecek");
     return null;
   } catch (error) {
     console.error('Aktif profil ayarlanırken hata:', error);
@@ -1638,18 +2567,53 @@ async function setInitialActiveProfile() {
 // Aktif profili ayarla
 async function setActiveProfile(id) {
   try {
+    console.log("setActiveProfile fonksiyonu başladı. ID:", id);
+    
+    // DOM elementlerini kontrol et
+    const selectedProfileNameElement = document.getElementById('selectedProfileName');
+    
+    if (!selectedProfileNameElement) {
+      console.error("'selectedProfileName' elementi bulunamadı!");
+      return;
+    }
+    
     // Profil bilgilerini al
+    console.log("Profil bilgileri alınıyor. ID:", id);
     const profile = await window.lsmAPI.profiles.getProfile(id);
+    console.log("Profil bilgileri:", profile);
     
     if (profile) {
       // Ana sürece bildir
-      await window.lsmAPI.profiles.setActive(id);
+      console.log("Ana sürece aktif profil bildiriliyor. ID:", id);
+      try {
+        const result = await window.lsmAPI.profiles.setActive(id);
+        console.log("Aktif profil kaydı sonucu:", result);
+        
+        // Kayıt sonucunu kontrol et
+        if (!result || !result.success) {
+          console.warn("Aktif profil kaydı başarısız olabilir:", result);
+        }
+      } catch (error) {
+        console.error("Ana sürece aktif profil bildirme hatası:", error);
+      }
       
       // Yerel değişkeni güncelle
       activeProfileId = profile.id;
       
       // Profil adını güncelle
-      selectedProfileName.textContent = profile.name;
+      selectedProfileNameElement.textContent = profile.name;
+      
+      console.log("Aktif profil başarıyla güncellendi. ID:", profile.id, "Ad:", profile.name);
+
+      // Aktif profil değişimini hemen kaydetmek için doğrudan localStorage'a da yazalım
+      try {
+        localStorage.setItem('lastActiveProfileId', profile.id);
+        console.log("Aktif profil localStorage'a kaydedildi:", profile.id);
+      } catch (storageError) {
+        console.warn("localStorage'a profil kaydedilemedi:", storageError);
+      }
+    } else {
+      console.error("Profil bilgileri alınamadı veya geçersiz");
     }
   } catch (error) {
     console.error('Aktif profil ayarlanırken hata:', error);
@@ -3259,4 +4223,121 @@ async function checkDryPeriodStatus(records) {
   } catch (error) {
     console.error('Kuru dönem kontrolü sırasında hata:', error);
   }
+}
+
+// Yem malzemesi türlerini yükle ve dropdown'u doldur
+async function loadFeedIngredientTypes() {
+  const selectElement = document.getElementById('ingredientName');
+  if (!selectElement) {
+    console.error("ingredientName select elementi bulunamadı!");
+    return;
+  }
+
+  if (!activeProfileId) {
+    console.warn("Aktif profil ID bulunamadığı için yem malzemesi türleri yüklenemiyor.");
+    selectElement.innerHTML = '<option value="" selected disabled>Profil seçilmedi</option>';
+    feedIngredientTypesCache = [];
+    return;
+  }
+
+  try {
+    const types = await window.lsmAPI.feedIngredientTypes.getAllByProfile(activeProfileId);
+    
+    feedIngredientTypesCache = Array.isArray(types) ? types : []; // API'den dönen `data` değil, doğrudan array olmalı
+    if (types && types.success === false) { // Hata durumu kontrolü
+        console.error("Yem malzemesi türleri API'den alınırken hata:", types.error);
+        feedIngredientTypesCache = [];
+    }
+
+    selectElement.innerHTML = ''; // Önce temizle
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "Malzeme seçin";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    selectElement.appendChild(defaultOption);
+
+    const addNewOption = document.createElement('option');
+    addNewOption.value = "Yeni Malzeme...";
+    addNewOption.textContent = "+ Yeni Malzeme Ekle...";
+    selectElement.appendChild(addNewOption);
+
+    // Önceden tanımlı (hardcoded) malzemeler - artık cache'den gelenler öncelikli olacak
+    const hardcodedIngredients = [
+      { name: 'Kuru Ot', default_cost: 2.5, default_protein: 12.5, default_energy: 8.0 },
+      { name: 'Silaj', default_cost: 1.2, default_protein: 8.0, default_energy: 10.5 },
+      { name: 'Arpa', default_cost: 5.5, default_protein: 11.5, default_energy: 13.0 },
+      // Diğer hardcoded malzemeler buraya eklenebilir
+    ];
+
+    // Önce cache'deki (veritabanından gelen) türleri ekle
+    feedIngredientTypesCache.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type.name;
+      option.textContent = type.name;
+      selectElement.appendChild(option);
+    });
+
+    // Sonra, cache'de olmayan hardcoded malzemeleri ekle (isteğe bağlı)
+    hardcodedIngredients.forEach(hcIng => {
+      if (!feedIngredientTypesCache.find(cachedType => cachedType.name === hcIng.name)) {
+        const option = document.createElement('option');
+        option.value = hcIng.name;
+        option.textContent = hcIng.name;
+        selectElement.appendChild(option);
+      }
+    });
+
+  } catch (error) {
+    console.error('Yem malzemesi türleri yüklenirken hata:', error);
+    selectElement.innerHTML = '<option value="" selected disabled>Türler yüklenemedi</option>';
+    feedIngredientTypesCache = [];
+  }
 } 
+
+// Anlık girilen yem malzemesi için toplam protein ve enerjiyi hesapla ve göster
+function updateLiveIngredientTotals() {
+  const amountEl = document.getElementById('ingredientAmount');
+  const proteinPercentEl = document.getElementById('ingredientProtein');
+  const energyPerKgEl = document.getElementById('ingredientEnergy');
+  const liveTotalProteinDisplayEl = document.getElementById('liveTotalProtein'); // HTML'e eklendiğini varsayıyoruz
+  const liveTotalEnergyDisplayEl = document.getElementById('liveTotalEnergy'); // HTML'e eklendiğini varsayıyoruz
+
+  if (!amountEl || !proteinPercentEl || !energyPerKgEl || !liveTotalProteinDisplayEl || !liveTotalEnergyDisplayEl) {
+    // console.warn("Canlı toplam hesaplama için gerekli elementlerden biri veya birkaçı eksik.");
+    return;
+  }
+
+  const amount = parseFloat(amountEl.value) || 0;
+  const proteinPercent = parseFloat(proteinPercentEl.value) || 0;
+  const energyPerKg = parseFloat(energyPerKgEl.value) || 0;
+
+  if (amount <= 0) {
+    liveTotalProteinDisplayEl.value = '0 g';
+    liveTotalEnergyDisplayEl.value = '0 MJ';
+    return;
+  }
+
+  // Toplam protein (g) = Miktar (kg) * (Protein (%) / 100) * 1000 (g/kg)
+  const totalProteinGrams = amount * (proteinPercent / 100) * 1000;
+  // Toplam enerji (MJ) = Miktar (kg) * Enerji (MJ/kg)
+  const totalEnergyMJ = amount * energyPerKg;
+
+  liveTotalProteinDisplayEl.value = totalProteinGrams.toFixed(1) + ' g';
+  liveTotalEnergyDisplayEl.value = totalEnergyMJ.toFixed(1) + ' MJ';
+}
+
+// Sayfa kapatılmadan önce profil durumunu kaydet
+window.addEventListener('beforeunload', async (event) => {
+  console.log('Sayfa kapatılıyor, aktif profil kaydediliyor:', activeProfileId);
+  if (activeProfileId) {
+    try {
+      // Son aktif profili API'ye kaydet
+      await window.lsmAPI.profiles.setActive(activeProfileId);
+      console.log('Aktif profil başarıyla kaydedildi:', activeProfileId);
+    } catch (error) {
+      console.error('Aktif profil kaydedilirken hata:', error);
+    }
+  }
+});

@@ -171,7 +171,8 @@ class Database {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         description TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
       )`);
 
       // Hayvan Türleri Tablosu
@@ -192,12 +193,20 @@ class Database {
         name TEXT,
         gender TEXT,
         birth_date DATE,
-        acquisition_date DATE,
-        acquisition_cost REAL,
+        entry_date DATE,
         status TEXT,
+        breed TEXT,
+        weight REAL,
+        color TEXT,
         notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        mother_id INTEGER,
+        father_id INTEGER,
         FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
-        FOREIGN KEY (type_id) REFERENCES animal_types(id) ON DELETE SET NULL
+        FOREIGN KEY (type_id) REFERENCES animal_types(id) ON DELETE SET NULL,
+        FOREIGN KEY (mother_id) REFERENCES animals(id) ON DELETE SET NULL,
+        FOREIGN KEY (father_id) REFERENCES animals(id) ON DELETE SET NULL
       )`);
 
       // Sağlık Kayıtları Tablosu
@@ -205,10 +214,14 @@ class Database {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         animal_id INTEGER,
         record_date DATE,
-        treatment_type TEXT,
+        record_type TEXT,
         description TEXT,
+        treatment TEXT,
         cost REAL,
         performed_by TEXT,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE
       )`);
 
@@ -221,6 +234,8 @@ class Database {
         amount REAL,
         quality TEXT,
         note TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE
       )`);
 
@@ -228,14 +243,19 @@ class Database {
       await this.run(`CREATE TABLE IF NOT EXISTS breeding_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         animal_id INTEGER,
-        partner_id INTEGER,
         breeding_date DATE,
+        semen_source TEXT,
+        bull_id INTEGER,
+        pregnant BOOLEAN DEFAULT 0,
+        pregnancy_check_date DATE,
         expected_birth_date DATE,
-        actual_birth_date DATE,
-        offspring_count INTEGER,
+        birth_date DATE,
+        birth_result TEXT,
         notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (animal_id) REFERENCES animals(id) ON DELETE CASCADE,
-        FOREIGN KEY (partner_id) REFERENCES animals(id) ON DELETE SET NULL
+        FOREIGN KEY (bull_id) REFERENCES animals(id) ON DELETE SET NULL
       )`);
 
       // Gelir Kategorileri Tablosu
@@ -260,14 +280,58 @@ class Database {
       await this.run(`CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         profile_id INTEGER,
-        transaction_date DATE,
+        date DATE,
         type TEXT,  -- 'income' veya 'expense'
-        category_id INTEGER,
         amount REAL,
         description TEXT,
-        related_animal_id INTEGER,
-        FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
-        FOREIGN KEY (related_animal_id) REFERENCES animals(id) ON DELETE SET NULL
+        category TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      )`);
+
+      // Rasyon Tablosu
+      await this.run(`CREATE TABLE IF NOT EXISTS rations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER,
+        name TEXT NOT NULL,
+        animal_group TEXT NOT NULL,
+        status TEXT DEFAULT 'Aktif',
+        description TEXT,
+        total_weight REAL,
+        total_cost REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      )`);
+
+      // Rasyon Bileşenleri Tablosu
+      await this.run(`CREATE TABLE IF NOT EXISTS ration_ingredients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ration_id INTEGER,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        cost REAL,
+        protein REAL,
+        energy REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        FOREIGN KEY (ration_id) REFERENCES rations(id) ON DELETE CASCADE
+      )`);
+
+      // Yem Malzemesi Türleri Tablosu
+      await this.run(`CREATE TABLE IF NOT EXISTS feed_ingredient_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER,
+        name TEXT NOT NULL,
+        default_cost REAL,
+        default_protein REAL,
+        default_energy REAL,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
+        UNIQUE (profile_id, name),
+        FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
       )`);
 
       // Performans için indeksler ekle

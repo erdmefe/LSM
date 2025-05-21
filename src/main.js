@@ -6,6 +6,8 @@ const healthRecordModel = require('./database/healthRecordModel');
 const milkRecordModel = require('./database/milkRecordModel');
 const breedingRecordModel = require('./database/breedingRecordModel');
 const profileModel = require('./database/profileModel');
+const rationModel = require('./database/rationModel');
+const feedIngredientModel = require('./database/feedIngredientModel');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -510,5 +512,132 @@ ipcMain.handle('get-upcoming-births', async (_, profileId, daysThreshold) => {
   } catch (error) {
     console.error(`Error getting upcoming births for profile ${profileId}:`, error);
     return [];
+  }
+});
+
+// Rasyon API
+ipcMain.handle('get-all-rations', async (_, profileId) => {
+  try {
+    console.log('Main process: get-all-rations called with profileId:', profileId);
+    
+    if (!profileId || profileId <= 0) {
+      console.error('Main process: Invalid profile ID:', profileId);
+      return [];
+    }
+    
+    const rations = await rationModel.getRationsByProfile(profileId);
+    console.log('Main process: Found rations count:', rations.length);
+    return rations;
+  } catch (error) {
+    console.error('Error fetching rations:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('get-ration', async (_, rationId) => {
+  try {
+    const ration = await rationModel.getRationById(rationId);
+    return ration;
+  } catch (error) {
+    console.error(`Error fetching ration ${rationId}:`, error);
+    return null;
+  }
+});
+
+ipcMain.handle('create-ration', async (_, rationData) => {
+  try {
+    console.log('Main process: create-ration called with data:', JSON.stringify(rationData, null, 2));
+    
+    // Ensure profile_id is set from active profile
+    if (!rationData.profile_id && activeProfileId) {
+      rationData.profile_id = activeProfileId;
+    }
+    
+    const id = await rationModel.createRation(rationData);
+    console.log('Main process: Successfully created ration with ID:', id);
+    return { success: true, id };
+  } catch (error) {
+    console.error('Main process: Error creating ration:', error);
+    
+    // Return a more descriptive error message
+    let errorMessage = 'Rasyon oluşturulurken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('update-ration', async (_, rationData) => {
+  try {
+    await rationModel.updateRation(rationData);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error updating ration ${rationData.id}:`, error);
+    let errorMessage = 'Rasyon güncellenirken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('delete-ration', async (_, rationId) => {
+  try {
+    await rationModel.deleteRation(rationId);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting ration ${rationId}:`, error);
+    let errorMessage = 'Rasyon silinirken bir hata oluştu.';
+    if (error.userMessage) {
+      errorMessage = error.userMessage;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('get-ration-stats', async (_, profileId) => {
+  try {
+    const stats = await rationModel.getRationStats(profileId);
+    return stats;
+  } catch (error) {
+    console.error(`Error getting ration stats for profile ${profileId}:`, error);
+    return null;
+  }
+});
+
+// Yem Malzemesi Türleri API
+ipcMain.handle('create-feed-ingredient-type', async (_, ingredientTypeData) => {
+  try {
+    // Ensure profile_id is set from active profile if not provided
+    if (!ingredientTypeData.profile_id && activeProfileId) {
+      ingredientTypeData.profile_id = activeProfileId;
+    }
+    return await feedIngredientModel.createFeedIngredientType(ingredientTypeData);
+  } catch (error) {
+    console.error('Error creating feed ingredient type:', error);
+    return { success: false, error: error.userMessage || 'Yem malzemesi türü oluşturulurken bir hata oluştu.' };
+  }
+});
+
+ipcMain.handle('get-feed-ingredient-types-by-profile', async (_, profileId) => {
+  try {
+    const effectiveProfileId = profileId || activeProfileId;
+    if (!effectiveProfileId) {
+      console.error('No profile ID available for fetching ingredient types.');
+      return []; // veya { success: false, error: 'Profil ID bulunamadı.' }
+    }
+    return await feedIngredientModel.getFeedIngredientTypesByProfile(effectiveProfileId);
+  } catch (error) {
+    console.error('Error fetching feed ingredient types:', error);
+    // Modelden gelen userMessage'ı kullan, yoksa genel bir mesaj ver
+    return { success: false, error: error.userMessage || 'Yem malzemesi türleri alınırken bir hata oluştu.', data: [] }; 
   }
 }); 
